@@ -51,7 +51,7 @@ namespace TSP
         /// 
         /// In advanced mode, it returns infinity when there is no connection.
         /// </summary>
-        public double costToGetTo (City destination) 
+        public double costToGetTo(City destination)
         {
             // Cartesian distance
             double magnitude = Math.Sqrt(Math.Pow(this.X - destination.X, 2) + Math.Pow(this.Y - destination.Y, 2));
@@ -63,7 +63,7 @@ namespace TSP
             magnitude *= SCALE_FACTOR;
 
             // In hard mode, remove edges; this slows down the calculation...
-            if (modeManager.isEdgeRemoved(this,destination))
+            if (modeManager.isEdgeRemoved(this, destination))
                 magnitude = Double.PositiveInfinity;
 
             return Math.Round(magnitude);

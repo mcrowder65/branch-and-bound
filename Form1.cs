@@ -161,9 +161,8 @@ namespace TSP
 
         private void bBToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            Console.WriteLine("B&B");
-            ProblemAndSolver solver = new ProblemAndSolver();
-            solver.solveProblem();
+           // Console.WriteLine("B&B");
+            CityData.solveProblem();
         }
 
         private void randomToolStripMenuItem1_Click(object sender, EventArgs e)
