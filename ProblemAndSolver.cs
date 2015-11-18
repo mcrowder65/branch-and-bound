@@ -102,7 +102,7 @@ namespace TSP
         /// </summary>
         private int _size;
 
-        private double[,] map;
+        public State initialState;
         /// <summary>
         /// Difficulty level
         /// </summary>
@@ -163,7 +163,7 @@ namespace TSP
         {
 
             Cities = new City[_size];
-            map = new Double[Cities.Length, Cities.Length];
+            initialState = new State(new Double[Cities.Length, Cities.Length]);
             Route = new ArrayList(_size);
             bssf = null;
 
@@ -288,36 +288,40 @@ namespace TSP
         /// right now it just picks a simple solution. 
         /// </summary>
         public void solveProblem()
-        {
-            Console.WriteLine("cities.length: " + Cities.Length);
+        {            
             for (int i = 0; i < Cities.Length; i++)
             {
                 for(int x = 0; x < Cities.Length; x++)
                 {
-                    map[i, x] = Cities[i].costToGetTo(Cities[x]);
-                    if (map[i, x] == 0)
-                        map[i, x] = double.PositiveInfinity;
+                    initialState.setPoint(i, x, Cities[i].costToGetTo(Cities[x]));
+                    if (initialState.getPoint(i, x) == 0)
+                        initialState.setPoint(i, x, double.PositiveInfinity);
                 }
             }
-            reduceMatrix();
+            reduceMatrix(initialState);
+            double BSSF = findBSSF(initialState);
+        }   
+        public double findBSSF(State currentState)
+        {
             double bssf = double.PositiveInfinity;
-            // outputMap();
-           int  iterator = 0;
+            int iterator = 0;
             while (double.IsPositiveInfinity(bssf)) //keep going to make sure I don't end up with infinity
             {
                 iterator++;
                 for (int i = 0; i < 10; i++)
                 {
-                    double tempGreedy = greedy();
+                    double tempGreedy = greedy(currentState);
                     if (tempGreedy < bssf)
                         bssf = tempGreedy;
 
                 }
             }
-            Console.WriteLine(iterator*10);
+            Console.WriteLine("*****************************************");
+            Console.WriteLine("Iterations: " + (iterator * 10));
             Console.WriteLine("bssf: " + bssf);
-        }   
-        public double greedy()
+            return bssf;
+        }
+        public double greedy(State currentState)
         {
             double cost = 0;
             List<double> path = new List<double>();
@@ -334,7 +338,7 @@ namespace TSP
                     index = rand.Next(0, Cities.Length);
                     randNums.Add(index);
                 }
-                cost += map[i, Convert.ToInt32(index)];
+                cost += currentState.getPoint(i, Convert.ToInt32(index));
                 if (cost == double.PositiveInfinity)
                     return cost;
 
@@ -346,24 +350,26 @@ namespace TSP
                     firstPoint.Y = Convert.ToInt32(index);
                 }
             }
-            cost += map[Convert.ToInt32(path[path.Count - 1]), Convert.ToInt32(firstPoint.X)];
+            int xCoord = Convert.ToInt32(path[path.Count - 1]);
+            int yCoord = Convert.ToInt32(firstPoint.X);
+            cost += currentState.getPoint(xCoord, yCoord);
             path.Add(path[0]);
             
             return cost;
         }
-        public void outputMap()
+        public void outputMap(State currentState)
         {
             string[,] copy = new string[Cities.Length, Cities.Length];
             for(int i = 0; i < Cities.Length; i++)
             {
                 for(int j = 0; j < Cities.Length; j++)
                 {
-                    if (map[i, j] == double.PositiveInfinity)
+                    if (currentState.getPoint(i, j) == double.PositiveInfinity)
                         copy[i, j] = "****";
-                    else if (map[i, j] == 0)
+                    else if (currentState.getPoint(i, j) == 0)
                         copy[i, j] = "@@@@";
                     else
-                        copy[i, j] = Convert.ToString(map[i, j]);
+                        copy[i, j] = Convert.ToString(currentState.getPoint(i, j));
                     
                     if (copy[i, j].Length == 1)
                         copy[i, j] = "000" + copy[i, j];
@@ -382,36 +388,44 @@ namespace TSP
                 Console.WriteLine();
             }
         }
-        public void reduceMatrix()
+        public void reduceMatrix(State currentState)
         {
+            double lowerBound = 0;
             for (int i = 0; i < Cities.Length; i++) // reduce rows
             {
                 double minimum = double.PositiveInfinity;
                 for (int j = 0; j < Cities.Length; j++)
                 {
-                    if (map[i, j] < minimum)
-                        minimum = map[i, j];
+                    if (currentState.getPoint(i, j) < minimum)
+                        minimum = currentState.getPoint(i, j);
                 }
                 if (minimum == 0) //if there is already a 0 in that row, don't waste time looping through it
                     continue;
                 for (int j = 0; j < Cities.Length; j++)
                 {
-                    map[i, j] = map[i, j] - minimum;
+                    double reducedPoint = currentState.getPoint(i, j) - minimum;
+                    currentState.setPoint(i, j, reducedPoint);
                 }
+                lowerBound += minimum;
             }
             for (int j = 0; j < Cities.Length; j++) //reduce columns
             {
                 double minimum = double.PositiveInfinity;
                 for (int i = 0; i < Cities.Length; i++)
                 {
-                    if (map[i, j] < minimum)
-                        minimum = map[i, j];
+                    if (currentState.getPoint(i, j) < minimum)
+                        minimum = currentState.getPoint(i, j);
                 }
                 if (minimum == 0) //if there is already a 0 in that column, don't waste time looping through it
                     continue;
                 for (int i = 0; i < Cities.Length; i++)
-                    map[i, j] = map[i, j] - minimum;
+                {
+                    double lowerPoint = currentState.getPoint(i, j) - minimum;
+                    currentState.setPoint(i, j, lowerPoint);
+                }
+                lowerBound += minimum;
             }
+
         }
         #endregion
     }

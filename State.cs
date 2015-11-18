@@ -10,7 +10,6 @@ namespace TSP
     {
         double[,] map;
         double LB;
-        double BSSF;
         public State() { }
         public State(double[,] map)
         {
@@ -40,14 +39,5 @@ namespace TSP
         {
             return LB;
         }
-        public void setBSSF(double temp)
-        {
-            BSSF = temp;
-        }
-        public double getBSSF()
-        {
-            return BSSF;
-        }
-
     }
 }
