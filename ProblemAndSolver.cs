@@ -74,6 +74,7 @@ namespace TSP
         /// the cities in the current problem.
         /// </summary>
         private City[] Cities;
+
         /// <summary>
         /// a route through the current problem, useful as a temporary variable. 
         /// </summary>
@@ -101,6 +102,8 @@ namespace TSP
         /// </summary>
         private int _size;
 
+        private double[,] map;
+        private List<PointF> zeros;
         /// <summary>
         /// Difficulty level
         /// </summary>
@@ -161,6 +164,7 @@ namespace TSP
         {
 
             Cities = new City[_size];
+            map = new Double[Cities.Length, Cities.Length];
             Route = new ArrayList(_size);
             bssf = null;
 
@@ -286,10 +290,9 @@ namespace TSP
         /// </summary>
         public void solveProblem()
         {
-            int x;
             Route = new ArrayList(); 
             // this is the trivial solution. 
-            for (x = 0; x < Cities.Length; x++)
+            for (int x = 0; x < Cities.Length; x++)
             {
                 Route.Add( Cities[Cities.Length - x -1]);
             }
@@ -300,7 +303,127 @@ namespace TSP
             // do a refresh. 
             Program.MainForm.Invalidate();
 
-            Console.WriteLine("hello world!");
+            for (int i = 0; i < Cities.Length; i++)
+            {
+                for(int x = 0; x < Cities.Length; x++)
+                {
+                    map[i, x] = Cities[i].costToGetTo(Cities[x]);
+                    if (map[i, x] == 0)
+                        map[i, x] = double.PositiveInfinity;
+                }
+            }
+            reduceMatrix();
+            outputMap();
+            //Console.WriteLine("hello world!");
+        }
+        public void findZeros()
+        {
+            for(int i = 0; i < Cities.Length; i++)
+            {
+                for(int j = 0; j < Cities.Length; j++)
+                {
+                    if(map[i,j] == 0)
+                    {
+                        PointF point = new PointF();
+                        point.X = i;
+                        point.Y = j;
+                        zeros.Add(point);
+                    }
+                }
+            }
+        }
+        public void outputMap()
+        {
+            string[,] copy = new string[Cities.Length, Cities.Length];
+            for(int i = 0; i < Cities.Length; i++)
+            {
+                for(int j = 0; j < Cities.Length; j++)
+                {
+                    if (map[i, j] == double.PositiveInfinity)
+                        copy[i, j] = "****";
+                    else if (map[i, j] == 0)
+                        copy[i, j] = "@@@@";
+                    else
+                        copy[i, j] = Convert.ToString(map[i, j]);
+                    
+                    if (copy[i, j].Length == 1)
+                        copy[i, j] = "000" + copy[i, j];
+                    if (copy[i, j].Length == 2)
+                        copy[i, j] = "00" + copy[i, j];
+                    if (copy[i, j].Length == 3)
+                        copy[i, j] = "0" + copy[i, j];
+                }
+            }
+            for(int i = 0; i < Cities.Length; i++)
+            {
+                for(int j = 0; j < Cities.Length; j++)
+                {
+                    Console.Write(copy[i, j] + " ");
+                }
+                Console.WriteLine();
+            }
+        }
+        public bool allZeroRows()
+        {
+
+            for(int i = 0; i < Cities.Length; i++)
+            {
+                double minimum = double.PositiveInfinity;
+                for(int j = 0; j < Cities.Length; j++)
+                {
+                    if (map[i,j] < minimum)
+                        minimum = map[i, j];
+                }
+                if (minimum != 0)
+                    return false;
+            }
+            return true;
+        }
+        public bool allZeroColumns()
+        {
+            for(int j = 0; j < Cities.Length; j++)
+            {
+                double minimum = double.PositiveInfinity;
+                for(int i = 0; i < Cities.Length; i++)
+                {
+                    if (map[i, j] < minimum)
+                        minimum = map[i, j];
+                }
+                if (minimum != 0)
+                    return false;
+            }
+            return true;
+        }
+        public void reduceMatrix()
+        {
+            while (!allZeroRows() && !allZeroColumns())
+            {
+                for (int i = 0; i < Cities.Length; i++)
+                {
+                    double minimum = double.PositiveInfinity;
+                    for (int j = 0; j < Cities.Length; j++)
+                    {
+                        if (map[i, j] < minimum)
+                            minimum = map[i, j];
+                    }
+                    for (int j = 0; j < Cities.Length; j++)
+                    {
+                        map[i, j] = map[i, j] - minimum;
+                    }
+                }
+                for (int j = 0; j < Cities.Length; j++)
+                {
+                    double minimum = double.PositiveInfinity;
+                    for (int i = 0; i < Cities.Length; i++)
+                    {
+                        if (map[i, j] < minimum)
+                            minimum = map[i, j];
+                    }
+                    for (int i = 0; i < Cities.Length; i++)
+                        map[i, j] = map[i, j] - minimum;
+                }
+            }
+
         }
         #endregion
     }

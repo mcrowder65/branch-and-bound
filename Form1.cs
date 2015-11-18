@@ -156,25 +156,24 @@ namespace TSP
 
         private void greedyToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            Console.WriteLine("Hello world!");
+            Console.WriteLine("greedy");
         }
 
         private void bBToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            // TODO: Add a hook into your own implementation here.
-            throw new NotImplementedException();
+            Console.WriteLine("B&B");
+            ProblemAndSolver solver = new ProblemAndSolver();
+            solver.solveProblem();
         }
 
         private void randomToolStripMenuItem1_Click(object sender, EventArgs e)
         {
-            // TODO: Add a hook into your own implementation here.
-            throw new NotImplementedException();
+            Console.WriteLine("random");
         }
 
         private void yourTSPToolStripMenuItem1_Click(object sender, EventArgs e)
         {
-            // TODO: Add a hook into your own implementation here.
-            throw new NotImplementedException();
+            Console.WriteLine("your");
         }
 
         private void AlgorithmMenu2_DropDownItemClicked(object sender, ToolStripItemClickedEventArgs e)
