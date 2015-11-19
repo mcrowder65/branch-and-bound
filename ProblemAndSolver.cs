@@ -305,57 +305,52 @@ namespace TSP
         {
             double bssf = double.PositiveInfinity;
             int iterator = 0;
-            while (double.IsPositiveInfinity(bssf)) //keep going to make sure I don't end up with infinity
-            {
-                iterator++;
-                for (int i = 0; i < 10; i++)
-                {
-                    double tempGreedy = greedy(currentState);
-                    if (tempGreedy < bssf)
-                        bssf = tempGreedy;
-
-                }
-            }
+            
             Console.WriteLine("*****************************************");
             Console.WriteLine("Iterations: " + (iterator * 10));
             Console.WriteLine("bssf: " + bssf);
             return bssf;
         }
-        public double greedy(State currentState)
+        public double random(State currentState)
         {
-            double cost = 0;
-            List<double> path = new List<double>();
             Random rand = new Random();
-            HashSet<double> randNums = new HashSet<double>();
-            PointF firstPoint = new PointF();
-
-            for(int i = 0; i < Cities.Length; i++)
+            double randNum = rand.Next(0, Cities.Length);
+            Route = new ArrayList(Cities.Length);
+            double BSSF = 0;
+            List<double> randNums = new List<double>();
+            randNums.Add(randNum);
+            Route.Add(Cities[Convert.ToInt32(randNum)]);
+            for(int i = 0; i < Cities.Length-1; i++)
             {
-                double index = 0;
+                double startNode = randNums[randNums.Count - 1];
                 int size = randNums.Count;
-                while(size == randNums.Count)
+                while (size == randNums.Count)
                 {
-                    index = rand.Next(0, Cities.Length);
-                    randNums.Add(index);
+                    randNum = rand.Next(0, Cities.Length);
+                    if (randNums.Contains(randNum))
+                        randNum = rand.Next(0, Cities.Length);
+                    else
+                    {
+                        randNums.Add(randNum);
+                        Route.Add(Cities[Convert.ToInt32(randNum)]);
+                    }
                 }
-                cost += currentState.getPoint(i, Convert.ToInt32(index));
-                if (cost == double.PositiveInfinity)
-                    return cost;
-
-               // Console.WriteLine(cost);
-                path.Add(index);
-                if(i == 0)
-                {
-                    firstPoint.X = i;
-                    firstPoint.Y = Convert.ToInt32(index);
-                }
+                BSSF += currentState.getPoint(Convert.ToInt32(startNode), Convert.ToInt32(randNum));
+                
+                if (BSSF == double.PositiveInfinity)
+                    return BSSF;
             }
-            int xCoord = Convert.ToInt32(path[path.Count - 1]);
-            int yCoord = Convert.ToInt32(firstPoint.X);
-            cost += currentState.getPoint(xCoord, yCoord);
-            path.Add(path[0]);
-            
-            return cost;
+            Route.Add(Cities[Convert.ToInt32(randNums[0])]);
+            BSSF += currentState.getPoint(Convert.ToInt32(randNums[randNums.Count - 1]), Convert.ToInt32(randNums[0]));
+
+
+            bssf = new TSPSolution(Route);
+            // update the cost of the tour. 
+            Program.MainForm.tbCostOfTour.Text = " " + bssf.costOfRoute();
+            // do a refresh. 
+            Program.MainForm.Invalidate();
+            return BSSF;
+
         }
         public void outputMap(State currentState)
         {
