@@ -47,7 +47,8 @@ namespace TSP
                     cost += here.costToGetTo(Route[x + 1] as City);
                 }
 
-                // go from the last city to the first. 
+                // go from the last city to the first.
+                
                 here = Route[Route.Count - 1] as City;
                 cost += here.costToGetTo(Route[0] as City);
                 return cost;
@@ -300,15 +301,93 @@ namespace TSP
             }
             reduceMatrix(initialState);
             double BSSF = findBSSF(initialState);
-        }   
+        }
+        public void greedy()
+        {
+            double BSSF = 0;
+            ArrayList correctRoute = new ArrayList();
+            double minimumBSSF = double.PositiveInfinity;
+            List<int> visitedCities = new List<int>();
+            int firstCity = -1;
+            int iterations = 0;
+            for (int city = 0; city < Cities.Length; city++)
+            {
+                iterations = 0;
+                bool reloop = false;
+                BSSF = 0;
+                visitedCities.Clear();
+                Route.Clear();
+                Route.Add(Cities[city]);
+                visitedCities.Add(city);
+                for (int i = city; i < Cities.Length; i++)
+                {
+                    Console.Write(i + " ");
+                    double minimum = double.PositiveInfinity;
+                    int chosenCity = -1;
+                    for (int j = 0; j < Cities.Length; j++)
+                    {
+                        double potentialMinimum = Cities[i].costToGetTo(Cities[j]);
+                        if (potentialMinimum < minimum && !visitedCities.Contains(j) && i != j)
+                        {
+                            minimum = potentialMinimum;
+                            chosenCity = j;
+                        }
+                    }
+                    if (chosenCity == -1)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        BSSF += minimum;
+                        visitedCities.Add(chosenCity);
+                        Route.Add(Cities[chosenCity]);
+                    }
+                    if (i == Cities.Length - 1 && iterations != Cities.Length - 1)
+                    {
+                        reloop = true;
+                        i = -1;
+                    }
+                    if (reloop)
+                    {
+                        if (i == city-1)
+                            break;
+                    }
+                    iterations++;
+                }
+                if (BSSF < double.PositiveInfinity)
+                {
+                    minimumBSSF = BSSF;
+                    firstCity = city;
+                    correctRoute = new ArrayList(Route);
+                    break;
+                }
+                
+            }
+            int lastCity = visitedCities[visitedCities.Count - 1];
+            minimumBSSF += Cities[lastCity].costToGetTo(Cities[firstCity]);
+            bssf = new TSPSolution(correctRoute);
+            // update the cost of the tour. 
+            Program.MainForm.tbCostOfTour.Text = " " + bssf.costOfRoute();
+            // do a refresh. 
+            Program.MainForm.Invalidate();
+        }
+
         public double findBSSF(State currentState)
         {
             double bssf = double.PositiveInfinity;
             int iterator = 0;
-            
-            Console.WriteLine("*****************************************");
-            Console.WriteLine("Iterations: " + (iterator * 10));
-            Console.WriteLine("bssf: " + bssf);
+            greedy();
+         /*  while(bssf != 5591)
+            {
+                for(int i = 0; i < 10; i++)
+                {
+                    bssf = random(initialState);
+                }
+            }*/
+           // Console.WriteLine("*****************************************");
+           // Console.WriteLine("Iterations: " + (iterator * 10));
+           // Console.WriteLine("bssf: " + bssf);
             return bssf;
         }
         public double random(State currentState)
@@ -426,3 +505,63 @@ namespace TSP
     }
 
 }
+/*Route = new ArrayList(Cities.Length);
+HashSet<int> unvisitedIndexes = new HashSet<int>(); // using a city's index in Cities, we can interate through indexes that have yet to be added
+            for (int index = 0; index<Cities.Length; index++)
+            {
+                unvisitedIndexes.Add(index);
+            }
+
+            print("\n\nTESTING\n");
+
+City city;
+            for (int i = 0; i<Cities.Length; i++) // keep trying start nodes until a solution is found
+            {
+                if (Route.Count == Cities.Length)
+                {
+                    break; // DONE!
+                }
+                else
+                {
+                    Route.Clear();
+                    for (int index = 0; index<Cities.Length; index++)
+                    {
+                        unvisitedIndexes.Add(index);
+                    }
+                    city = Cities[i];
+                }
+
+                for (int n = 0; n<Cities.Length; n++) // add nodes n times
+                {
+
+                    double shortestDistance = Double.PositiveInfinity;
+int closestIndex = -1;
+                    foreach (int check in unvisitedIndexes) //find the closest city to add to route
+                    {
+                        double distance = city.costToGetTo(Cities[check]);
+                        if (distance<shortestDistance)
+                        {
+                            shortestDistance = distance;
+                            closestIndex = check;
+                        }
+                    }
+
+                    if (closestIndex != -1)
+                    {
+                        city = Cities[closestIndex];
+                        Route.Add(city);
+                        unvisitedIndexes.Remove(closestIndex);
+                    }
+                    else
+                    {
+                        break; // try again
+                    }
+                }                
+            }
+
+            // call this the best solution so far.  bssf is the route that will be drawn by the Draw method. 
+            bssf = new TSPSolution(Route);
+// update the cost of the tour. 
+Program.MainForm.tbCostOfTour.Text = " " + bssf.costOfRoute();
+            // do a refresh. 
+            Program.MainForm.Invalidate();*/

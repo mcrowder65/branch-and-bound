@@ -26,6 +26,10 @@ namespace TSP
             _elevation = elevation;
         }
 
+        public City()
+        {
+        }
+
         private double _X;
         private double _Y;
         private double _elevation;
