@@ -283,30 +283,175 @@ namespace TSP
             else
                 return -1D; 
         }
-
+        double BSSF;
+        Queue queue;
         /// <summary>
         ///  solve the problem.  This is the entry point for the solver when the run button is clicked
         /// right now it just picks a simple solution. 
         /// </summary>
+       
         public void solveProblem()
-        {            
-            for (int i = 0; i < Cities.Length; i++)
+        {
+
+            /*   for (int i = 0; i < Cities.Length; i++)
+               {
+                   for(int x = 0; x < Cities.Length; x++)
+                   {
+                       initialState.setPoint(i, x, Cities[i].costToGetTo(Cities[x]));
+                       if (initialState.getPoint(i, x) == 0)
+                           initialState.setPoint(i, x, double.PositiveInfinity);
+                   }
+               }*/
+            initialState.setMap(new double[4, 4]);
+            //row 1
+            initialState.setPoint(0, 0, double.PositiveInfinity);
+            initialState.setPoint(0, 1, 7);
+            initialState.setPoint(0, 2, 3);
+            initialState.setPoint(0, 3, 12);
+            //row 2
+            initialState.setPoint(1, 0, 3);
+            initialState.setPoint(1, 1, double.PositiveInfinity);
+            initialState.setPoint(1, 2, 6);
+            initialState.setPoint(1, 3, 14);
+            //row 3
+            initialState.setPoint(2, 0, 5);
+            initialState.setPoint(2, 1, 8);
+            initialState.setPoint(2, 2, double.PositiveInfinity);
+            initialState.setPoint(2, 3, 6);
+            //row 4
+            initialState.setPoint(3, 0, 9);
+            initialState.setPoint(3, 1, 3);
+            initialState.setPoint(3, 2, 5);
+            initialState.setPoint(3, 3, double.PositiveInfinity);
+
+
+
+            reduceMatrix(initialState);
+
+            BSSF = greedy(); //this is a global double
+            queue = new Queue(); //this is a global queue of states
+            findGreatestDiff(initialState);
+
+
+
+            int iterator = 0;
+            while(queue.size() != 0)
             {
-                for(int x = 0; x < Cities.Length; x++)
+                iterator++;
+                State min = queue.deleteMin();
+                if (min.getLB() > BSSF && queue.size() == 1)
+                    break;
+                else if (min.getLB() > BSSF)
+                    continue;
+                findGreatestDiff(min);
+            }
+            int hello = 0;
+        }
+        public void findGreatestDiff(State state)
+        {
+            int chosenX = 0;
+            int chosenY = 0;
+            int greatestDiff = 0;
+            for (int i = 0; i < state.getMap().GetLength(0); i++)
+            {
+                for (int j = 0; j < state.getMap().GetLength(1); j++)
                 {
-                    initialState.setPoint(i, x, Cities[i].costToGetTo(Cities[x]));
-                    if (initialState.getPoint(i, x) == 0)
-                        initialState.setPoint(i, x, double.PositiveInfinity);
+                    if (state.getPoint(i, j) == 0)
+                    {
+                        int possibleMax = findExcludeMinusInclude(i, j, state);
+                        if (possibleMax > greatestDiff)
+                        {
+                            chosenX = i;
+                            chosenY = j;
+                            greatestDiff = possibleMax;
+                        }
+                    }
                 }
             }
-            reduceMatrix(initialState);
-            double BSSF = findBSSF(initialState);
+            State include = makeInclude(chosenX, chosenY, state);
+            if (BSSF > include.getLB())
+                queue.insert(include);
+
+            if (isAllInfinity(include))
+                BSSF = include.getLB();
+
+            State exclude = makeExclude(chosenX, chosenY, state);
+            if (BSSF > exclude.getLB())
+                queue.insert(exclude);
+
+            if (isAllInfinity(exclude))
+                BSSF = exclude.getLB();
         }
-        public void greedy()
+        public bool isAllInfinity(State state)
+        {
+            for(int i = 0; i < state.getMap().GetLength(0); i++)
+            {
+                for(int j = 0; j < state.getMap().GetLength(1); j++)
+                {
+                    if (state.getPoint(i, j) != double.PositiveInfinity)
+                        return false;
+                }
+            }
+            return true;
+        }
+        public int findExcludeMinusInclude(int x, int y, State state)
+        {
+
+            double[,] excludeMatrix = new double[4, 4];
+
+            State excludeState = makeExclude(x, y, state);
+            reduceMatrix(excludeState);
+
+            State includeState = makeInclude(x, y, state);
+            reduceMatrix(includeState);
+            
+            int cost = Convert.ToInt32(excludeState.getLB() - includeState.getLB());
+            return cost;
+        }
+        public State makeInclude(int x, int y, State state)
+        {
+            State includeState = new State(copyMatrix(state.getMap()), state.getLB());
+            includeState.setPoint(y, x, double.PositiveInfinity);
+            for (int j = 0; j < includeState.getMap().GetLength(1); j++) //set the column to infinity
+            {
+                for (int i = 0; i < includeState.getMap().GetLength(0); i++)
+                {
+                    includeState.setPoint(x, j, double.PositiveInfinity);
+                }
+            }
+            for (int i = 0; i < includeState.getMap().GetLength(0); i++) //set the row to infinity
+            {
+                for (int j = 0; j < includeState.getMap().GetLength(1); j++)
+                {
+                    includeState.setPoint(i, y, double.PositiveInfinity);
+                }
+            }
+            reduceMatrix(includeState);
+            return includeState;
+        }
+        public State makeExclude(int x, int y, State state)
+        {
+            State excludeState = new State(copyMatrix(state.getMap()), state.getLB());
+            excludeState.setPoint(x, y, double.PositiveInfinity);
+            reduceMatrix(excludeState);
+            return excludeState;
+        }
+        public double[,] copyMatrix(double[,] initialMatrix)
+        {
+            double[,] copy = new double[initialMatrix.GetLength(0), initialMatrix.GetLength(1)];
+            for(int i = 0; i < initialMatrix.GetLength(0); i++)
+            {
+                for(int j = 0; j < initialMatrix.GetLength(1); j++)
+                {
+                    copy[i, j] = initialMatrix[i, j];
+                }
+            }
+            return copy;
+        }
+        public double greedy()
         {
             double BSSF = 0;
             ArrayList correctRoute = new ArrayList();
-            double minimumBSSF = double.PositiveInfinity;
             List<int> visitedCities = new List<int>();
             int firstCity = -1;
             int iterations = 0;
@@ -357,7 +502,6 @@ namespace TSP
                 }
                 if (BSSF < double.PositiveInfinity)
                 {
-                    minimumBSSF = BSSF;
                     firstCity = city;
                     correctRoute = new ArrayList(Route);
                     break;
@@ -365,30 +509,14 @@ namespace TSP
                 
             }
             int lastCity = visitedCities[visitedCities.Count - 1];
-            minimumBSSF += Cities[lastCity].costToGetTo(Cities[firstCity]);
+            BSSF += Cities[lastCity].costToGetTo(Cities[firstCity]);
+            
             bssf = new TSPSolution(correctRoute);
             // update the cost of the tour. 
             Program.MainForm.tbCostOfTour.Text = " " + bssf.costOfRoute();
             // do a refresh. 
             Program.MainForm.Invalidate();
-        }
-
-        public double findBSSF(State currentState)
-        {
-            double bssf = double.PositiveInfinity;
-            int iterator = 0;
-            greedy();
-         /*  while(bssf != 5591)
-            {
-                for(int i = 0; i < 10; i++)
-                {
-                    bssf = random(initialState);
-                }
-            }*/
-           // Console.WriteLine("*****************************************");
-           // Console.WriteLine("Iterations: " + (iterator * 10));
-           // Console.WriteLine("bssf: " + bssf);
-            return bssf;
+            return BSSF;
         }
         public double random(State currentState)
         {
@@ -433,29 +561,22 @@ namespace TSP
         }
         public void outputMap(State currentState)
         {
-            string[,] copy = new string[Cities.Length, Cities.Length];
-            for(int i = 0; i < Cities.Length; i++)
+            string[,] copy = new string[currentState.getMap().GetLength(0), currentState.getMap().GetLength(1)];
+            for(int i = 0; i < currentState.getMap().GetLength(0); i++)
             {
-                for(int j = 0; j < Cities.Length; j++)
+                for(int j = 0; j < currentState.getMap().GetLength(1); j++)
                 {
                     if (currentState.getPoint(i, j) == double.PositiveInfinity)
-                        copy[i, j] = "****";
+                        copy[i, j] = "-";
                     else if (currentState.getPoint(i, j) == 0)
-                        copy[i, j] = "@@@@";
+                        copy[i, j] = "0";
                     else
                         copy[i, j] = Convert.ToString(currentState.getPoint(i, j));
-                    
-                    if (copy[i, j].Length == 1)
-                        copy[i, j] = "000" + copy[i, j];
-                    if (copy[i, j].Length == 2)
-                        copy[i, j] = "00" + copy[i, j];
-                    if (copy[i, j].Length == 3)
-                        copy[i, j] = "0" + copy[i, j];
                 }
             }
-            for(int i = 0; i < Cities.Length; i++)
+            for(int i = 0; i < currentState.getMap().GetLength(0); i++)
             {
-                for(int j = 0; j < Cities.Length; j++)
+                for(int j = 0; j < currentState.getMap().GetLength(1); j++)
                 {
                     Console.Write(copy[i, j] + " ");
                 }
@@ -464,42 +585,49 @@ namespace TSP
         }
         public void reduceMatrix(State currentState)
         {
-            double lowerBound = 0;
-            for (int i = 0; i < Cities.Length; i++) // reduce rows
+            outputMap(currentState);
+            double lowerBound = currentState.getLB() ;
+            for (int i = 0; i < currentState.getMap().GetLength(0); i++) // reduce rows
             {
                 double minimum = double.PositiveInfinity;
-                for (int j = 0; j < Cities.Length; j++)
+                for (int j = 0; j < currentState.getMap().GetLength(1); j++)
                 {
                     if (currentState.getPoint(i, j) < minimum)
                         minimum = currentState.getPoint(i, j);
                 }
                 if (minimum == 0) //if there is already a 0 in that row, don't waste time looping through it
                     continue;
-                for (int j = 0; j < Cities.Length; j++)
+                if (minimum != double.PositiveInfinity)
                 {
-                    double reducedPoint = currentState.getPoint(i, j) - minimum;
-                    currentState.setPoint(i, j, reducedPoint);
+                    for (int j = 0; j < currentState.getMap().GetLength(1); j++)
+                    {
+                        double reducedPoint = currentState.getPoint(i, j) - minimum;
+                        currentState.setPoint(i, j, reducedPoint);
+                    }
+                    lowerBound += minimum;
                 }
-                lowerBound += minimum;
             }
-            for (int j = 0; j < Cities.Length; j++) //reduce columns
+            for (int j = 0; j < currentState.getMap().GetLength(1); j++) //reduce columns
             {
                 double minimum = double.PositiveInfinity;
-                for (int i = 0; i < Cities.Length; i++)
+                for (int i = 0; i < currentState.getMap().GetLength(0); i++)
                 {
                     if (currentState.getPoint(i, j) < minimum)
                         minimum = currentState.getPoint(i, j);
                 }
                 if (minimum == 0) //if there is already a 0 in that column, don't waste time looping through it
                     continue;
-                for (int i = 0; i < Cities.Length; i++)
+                if (minimum != double.PositiveInfinity)
                 {
-                    double lowerPoint = currentState.getPoint(i, j) - minimum;
-                    currentState.setPoint(i, j, lowerPoint);
+                    for (int i = 0; i < currentState.getMap().GetLength(0); i++)
+                    {
+                        double lowerPoint = currentState.getPoint(i, j) - minimum;
+                        currentState.setPoint(i, j, lowerPoint);
+                    }
+                    lowerBound += minimum;
                 }
-                lowerBound += minimum;
             }
-
+            currentState.setLB(lowerBound);
         }
         #endregion
     }
@@ -565,3 +693,15 @@ int closestIndex = -1;
 Program.MainForm.tbCostOfTour.Text = " " + bssf.costOfRoute();
             // do a refresh. 
             Program.MainForm.Invalidate();*/
+
+
+
+/*Console.WriteLine("**************************************************");
+        Console.WriteLine("INITIAL STATE");
+        outputMap(state);
+        Console.WriteLine("**************************************************");
+        Console.WriteLine("EXCLUDE STATE");
+        outputMap(excludeState);
+        Console.WriteLine("**************************************************");
+        Console.WriteLine("INCLUDE STATE");
+        outputMap(includeState);*/

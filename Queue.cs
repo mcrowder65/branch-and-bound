@@ -7,16 +7,17 @@ using System.Threading.Tasks;
 
 namespace TSP
 {
-   /* public class Queue
+    public class Queue
     {
         List<State> heap;
-        Dictionary<PointF, int> pointerArray;
+        Dictionary<State, int> pointerArray;
         public Queue()
         {
             heap = new List<State>();
-            pointerArray = new Dictionary<PointF, int>();
+            pointerArray = new Dictionary<State, int>();
         }
-        public Dictionary<PointF, int> getPointerArray()
+
+        public Dictionary<State, int> getPointerArray()
         {
             return pointerArray;
         }
@@ -24,7 +25,7 @@ namespace TSP
         {
             return heap;
         }
-        public State getNode(int index)
+        public State getState(int index)
         {
             return heap[index];
         }
@@ -36,47 +37,32 @@ namespace TSP
         {
             heap.Add(x);
             heap[heap.Count - 1].setIndex(heap.Count - 1);
-            pointerArray[heap[heap.Count - 1].getPoint()] = heap.Count - 1;
+            pointerArray[heap[heap.Count - 1]] = heap.Count - 1;
             bubbleUp(x, heap.Count - 1); //O(logn)
         }
         public void decreaseKey(State x)
         {
-            int index = pointerArray[x.getPoint()];//O(1) lookup time, in a dictionary..
+            int index = pointerArray[x];//O(1) lookup time, in a dictionary..
             if (index == -1)
                 return;
             bubbleUp(x, Convert.ToDouble(index));
         }
-
-        public void makeHeap(List<PointF> points, PointF startingNode, string method) //O(n)
-        {
-            heap.Add(new Node(0, startingNode, 0));
-            pointerArray[startingNode] = 0;
-            if (method == "allPath")
-            {
-                for (int i = 1; i < points.Count; i++)
-                {//O(n), looks at all elements in points
-                    heap.Add(new Node(Int32.MaxValue, points[i], i));
-                    pointerArray[points[i]] = i;
-                }
-
-            }
-        }
-        public void bubbleUp(Node x, double i)//O(logn)
+        public void bubbleUp(State x, double i)//O(logn)
         {
             int parent = Convert.ToInt32(Math.Floor((i - 1) / 2));
             int index = Convert.ToInt32(i); // i
             heap[index] = x;
 
-            while (index != 0 && heap[parent].getDistance() > heap[index].getDistance())
+            while (index != 0 && heap[parent].getLB() > heap[index].getLB())
             {//if parent is greater than child, swap it until at root -> worst case O(logn)
-                Node temp = heap[index];
+                State temp = heap[index];
                 heap[index] = heap[parent];
                 heap[index].setIndex(index);
-                pointerArray[heap[index].getPoint()] = index;
+                pointerArray[heap[index]] = index;
 
                 heap[parent] = temp;
                 heap[parent].setIndex(parent);
-                pointerArray[heap[parent].getPoint()] = parent;
+                pointerArray[heap[parent]] = parent;
 
                 //set parent back to child
                 index = parent;
@@ -84,29 +70,29 @@ namespace TSP
             }
 
         }
-        public Node deleteMin() //O(logn)
+        public State deleteMin() //O(logn)
         {
             if (heap.Count == 0)
                 return null;
 
-            Node x = heap[0];
+            State x = heap[0];
             heap[0] = heap[heap.Count - 1];
             heap[0].setIndex(0);
-            pointerArray[heap[0].getPoint()] = 0;
+            pointerArray[heap[0]] = 0;
             if (heap.Count != 1)
             {
-                pointerArray[heap[heap.Count - 1].getPoint()] = -1;
+                pointerArray[heap[heap.Count - 1]] = -1;
                 heap.RemoveAt(heap.Count - 1);
             }
             siftDown(heap[0], 0); //O(logn)
             return x;
         }
-        public void siftDown(Node x, int i)//O(logn)
+        public void siftDown(State x, int i)//O(logn)
         {
             int min = minChild(i);
-            while (min != 0 && heap[min].getDistance() < heap[x.getIndex()].getDistance())//O(logn), because you don't look at every element
+            while (min != 0 && heap[min].getLB() < heap[x.getIndex()].getLB())//O(logn), because you don't look at every element
             {
-                Node temp = heap[i];
+                State temp = heap[i];
                 heap[i] = heap[min];
                 heap[i].setIndex(i);
                 heap[min] = temp;
@@ -123,18 +109,18 @@ namespace TSP
                 return 0;
             if (heap.Count == 2)
             {
-                if (heap[0].getDistance() > heap[1].getDistance())
+                if (heap[0].getLB() > heap[1].getLB())
                     return 1;
             }
             if (2 * i + 2 > heap.Count - 1)
             {
                 return i;
             }
-            if (heap[i * 2 + 1].getDistance() < heap[i * 2 + 2].getDistance())
+            if (heap[i * 2 + 1].getLB() < heap[i * 2 + 2].getLB())
             {
                 return i * 2 + 1;
             }
             return i * 2 + 2;
         }
-    }*/
+    }
 }
