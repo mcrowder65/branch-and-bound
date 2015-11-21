@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 using System.Drawing;
+using C5;
 
 namespace TSP
 {
@@ -284,15 +285,16 @@ namespace TSP
                 return -1D; 
         }
         double BSSF;
-        Queue queue;
+        IntervalHeap<State> queue;
+        State bestState;
         /// <summary>
         ///  solve the problem.  This is the entry point for the solver when the run button is clicked
         /// right now it just picks a simple solution. 
         /// </summary>
-       
+        
         public void solveProblem()
         {
-
+            
             /*   for (int i = 0; i < Cities.Length; i++)
                {
                    for(int x = 0; x < Cities.Length; x++)
@@ -325,26 +327,20 @@ namespace TSP
             initialState.setPoint(3, 3, double.PositiveInfinity);
 
 
-
+            Dictionary<int, int> bestSoFar = new Dictionary<int, int>();
             reduceMatrix(initialState);
-
+            queue = new IntervalHeap<State>(); //this is a global queue
             BSSF = greedy(); //this is a global double
-            queue = new Queue(); //this is a global queue of states
             findGreatestDiff(initialState);
 
-
-
             int iterator = 0;
-            while(queue.size() != 0)
+            while(queue.Count != 0)
             {
                 iterator++;
-                State min = queue.deleteMin();
-                if (min.getLB() > BSSF && queue.size() == 1)
-                    break;
-                else if (min.getLB() > BSSF)
-                    continue;
+                State min = queue.DeleteMin();
                 findGreatestDiff(min);
             }
+            Console.WriteLine(bestState.getLB());
             int hello = 0;
         }
         public void findGreatestDiff(State state)
@@ -369,18 +365,28 @@ namespace TSP
                 }
             }
             State include = makeInclude(chosenX, chosenY, state);
+            include.setEdges(state.getEdges());
             if (BSSF > include.getLB())
-                queue.insert(include);
-
+            {
+                queue.Add(include);
+                include.setEdge(chosenX, chosenY);
+            }
             if (isAllInfinity(include))
+            {
                 BSSF = include.getLB();
+                bestState = include;
+            }
 
             State exclude = makeExclude(chosenX, chosenY, state);
             if (BSSF > exclude.getLB())
-                queue.insert(exclude);
+                queue.Add(exclude);
 
             if (isAllInfinity(exclude))
+            {
                 BSSF = exclude.getLB();
+            }
+
+            Console.WriteLine(exclude.getLB() + " " + include.getLB());
         }
         public bool isAllInfinity(State state)
         {
@@ -396,7 +402,7 @@ namespace TSP
         }
         public int findExcludeMinusInclude(int x, int y, State state)
         {
-
+            
             double[,] excludeMatrix = new double[4, 4];
 
             State excludeState = makeExclude(x, y, state);
@@ -410,7 +416,7 @@ namespace TSP
         }
         public State makeInclude(int x, int y, State state)
         {
-            State includeState = new State(copyMatrix(state.getMap()), state.getLB());
+            State includeState = new State(copyMatrix(state.getMap()), state.getLB(), state.getEdges());
             includeState.setPoint(y, x, double.PositiveInfinity);
             for (int j = 0; j < includeState.getMap().GetLength(1); j++) //set the column to infinity
             {
@@ -431,7 +437,7 @@ namespace TSP
         }
         public State makeExclude(int x, int y, State state)
         {
-            State excludeState = new State(copyMatrix(state.getMap()), state.getLB());
+            State excludeState = new State(copyMatrix(state.getMap()), state.getLB(), state.getEdges());
             excludeState.setPoint(x, y, double.PositiveInfinity);
             reduceMatrix(excludeState);
             return excludeState;
@@ -466,7 +472,6 @@ namespace TSP
                 visitedCities.Add(city);
                 for (int i = city; i < Cities.Length; i++)
                 {
-                    Console.Write(i + " ");
                     double minimum = double.PositiveInfinity;
                     int chosenCity = -1;
                     for (int j = 0; j < Cities.Length; j++)
@@ -515,7 +520,7 @@ namespace TSP
             // update the cost of the tour. 
             Program.MainForm.tbCostOfTour.Text = " " + bssf.costOfRoute();
             // do a refresh. 
-            Program.MainForm.Invalidate();
+            //Program.MainForm.Invalidate();
             return BSSF;
         }
         public double random(State currentState)
@@ -585,7 +590,7 @@ namespace TSP
         }
         public void reduceMatrix(State currentState)
         {
-            outputMap(currentState);
+         //   outputMap(currentState);
             double lowerBound = currentState.getLB() ;
             for (int i = 0; i < currentState.getMap().GetLength(0); i++) // reduce rows
             {
