@@ -22,8 +22,9 @@ namespace TSP
         {
             this.map = map;
             this.LB = LB;
-            this.edges = edges;
+            this.edges = new Dictionary<int, int>(edges);
         }
+
         public void initializeEdges()
         {
             edges = new Dictionary<int, int>();
@@ -38,7 +39,7 @@ namespace TSP
         }
         public void setEdges(Dictionary<int, int> temp)
         {
-            edges = temp;
+            edges = new Dictionary<int, int>(temp);
         }
         public int getEdge(int temp)
         {

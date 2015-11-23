@@ -294,7 +294,7 @@ namespace TSP
         
         public void solveProblem()
         {
-            /*for (int i = 0; i < Cities.Length; i++)
+            for (int i = 0; i < Cities.Length; i++)
             {
                 for(int x = 0; x < Cities.Length; x++)
                 {
@@ -302,8 +302,8 @@ namespace TSP
                     if (initialState.getPoint(i, x) == 0)
                         initialState.setPoint(i, x, double.PositiveInfinity);
                 }
-            }*/
-            initialState = new State();
+            }
+            /*initialState = new State();
             initialState.setMap(new double[4, 4]);
             //row 1
             initialState.setPoint(0, 0, double.PositiveInfinity);
@@ -324,14 +324,13 @@ namespace TSP
             initialState.setPoint(3, 0, 9);
             initialState.setPoint(3, 1, 3);
             initialState.setPoint(3, 2, 5);
-            initialState.setPoint(3, 3, double.PositiveInfinity);
+            initialState.setPoint(3, 3, double.PositiveInfinity);*/
 
-
+            initialState.initializeEdges();
             Dictionary<int, int> bestSoFar = new Dictionary<int, int>();
             reduceMatrix(initialState);
             queue = new IntervalHeap<State>(); //this is a global queue
-            //BSSF = greedy(); //this is a global double
-            BSSF = 28;
+            BSSF = greedy(); //this is a global double
             findGreatestDiff(initialState);
 
             int iterator = 0;
@@ -341,13 +340,13 @@ namespace TSP
                 State min = queue.DeleteMin();
                 findGreatestDiff(min);
             }
-            int hello = 0;
+            Console.WriteLine(BSSF);
         }
         public void findGreatestDiff(State state)
         {
             int chosenX = 0;
             int chosenY = 0;
-            int greatestDiff = 0;
+            double greatestDiff = double.NegativeInfinity;
             for (int i = 0; i < state.getMap().GetLength(0); i++)
             {
                 for (int j = 0; j < state.getMap().GetLength(1); j++)
@@ -355,7 +354,7 @@ namespace TSP
                     if (state.getPoint(i, j) == 0)
                     {
                         int possibleMax = findExcludeMinusInclude(i, j, state);
-                        if (possibleMax > greatestDiff)
+                        if (possibleMax >= greatestDiff)
                         {
                             chosenX = i;
                             chosenY = j;
@@ -367,10 +366,12 @@ namespace TSP
             State include = makeInclude(chosenX, chosenY, state);
             if (BSSF > include.getLB())
             {
-                queue.Add(include);
+                
                 include.setEdge(chosenX, chosenY);
+                checkCycles(include, chosenX, chosenY);
+                queue.Add(include);
             }
-            if (isAllInfinity(include))
+            if (isDictionaryFilled(include))
             {
                 BSSF = include.getLB();
                 bestState = include;
@@ -380,22 +381,64 @@ namespace TSP
             if (BSSF > exclude.getLB())
                 queue.Add(exclude);
 
-            if (isAllInfinity(exclude))
+            if (isDictionaryFilled(exclude))
             {
                 BSSF = exclude.getLB();
             }
 
-            Console.WriteLine(exclude.getLB() + " " + include.getLB());
+            //Console.WriteLine(exclude.getLB() + " " + include.getLB());
         }
-        public bool isAllInfinity(State state)
+        public void checkCycles(State state, int i, int j)
         {
-            for(int i = 0; i < state.getMap().GetLength(0); i++)
+            Dictionary<int, int> edges = new Dictionary<int, int>(state.getEdges());
+            if (getDictionarySize(edges) == edges.Count)
+                return;
+            int[] entered = new int[edges.Count];
+            int[] exited = new int[edges.Count];
+            for (int x = 0; x < entered.Length; x++)
+                entered[x] = -1;
+            for (int x = 0; x < edges.Count; x++)
             {
-                for(int j = 0; j < state.getMap().GetLength(1); j++)
+                exited[x] = edges[x];
+                if (exited[x] != -1)
+                    entered[exited[x]] = x;
+            }
+            
+            entered[j] = i;
+            exited[i] = j;
+
+            int start = i;
+            int end = j;
+            while(exited[end] != -1)
+                end = exited[end];
+            while (entered[start] != -1)
+                start = entered[start];
+            if (getDictionarySize(edges) != edges.Count - 1)
+            {
+                while (start != j)
                 {
-                    if (state.getPoint(i, j) != double.PositiveInfinity)
-                        return false;
+                    state.setPoint(end, start, double.PositiveInfinity);
+                    state.setPoint(j, start, double.PositiveInfinity);
+                    start = exited[start];
                 }
+            }
+        }
+        public int getDictionarySize(Dictionary<int, int> dictionary)
+        {
+            int size = 0;
+            for(int i = 0; i < dictionary.Count; i++)
+            {
+                if (dictionary[i] != -1)
+                    size++;
+            }
+            return size;
+        }
+        public bool isDictionaryFilled(State state)
+        {
+            for(int i = 0; i < state.getEdges().Count; i++)
+            {
+                if (state.getEdge(i) == -1)
+                    return false;
             }
             return true;
         }
@@ -417,19 +460,13 @@ namespace TSP
         {
             State includeState = new State(copyMatrix(state.getMap()), state.getLB(), state.getEdges());
             includeState.setPoint(y, x, double.PositiveInfinity);
-            for (int j = 0; j < includeState.getMap().GetLength(1); j++) //set the column to infinity
+            for (int j = 0; j < includeState.getMap().GetLength(1); j++) //set the row to infinity
             {
-                for (int i = 0; i < includeState.getMap().GetLength(0); i++)
-                {
-                    includeState.setPoint(x, j, double.PositiveInfinity);
-                }
+                includeState.setPoint(x, j, double.PositiveInfinity);
             }
-            for (int i = 0; i < includeState.getMap().GetLength(0); i++) //set the row to infinity
+            for (int i = 0; i < includeState.getMap().GetLength(0); i++) //set the column to infinity
             {
-                for (int j = 0; j < includeState.getMap().GetLength(1); j++)
-                {
-                    includeState.setPoint(i, y, double.PositiveInfinity);
-                }
+                includeState.setPoint(i, y, double.PositiveInfinity);
             }
             reduceMatrix(includeState);
             includeState.setEdges(state.getEdges());
