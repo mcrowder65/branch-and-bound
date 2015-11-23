@@ -26,6 +26,7 @@ namespace TSP
         }
         public void initializeEdges()
         {
+            edges = new Dictionary<int, int>();
             for(int i = 0; i < map.GetLength(0); i++)
             {
                 edges[i] = -1;

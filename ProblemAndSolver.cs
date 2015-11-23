@@ -294,16 +294,16 @@ namespace TSP
         
         public void solveProblem()
         {
-            
-            /*   for (int i = 0; i < Cities.Length; i++)
-               {
-                   for(int x = 0; x < Cities.Length; x++)
-                   {
-                       initialState.setPoint(i, x, Cities[i].costToGetTo(Cities[x]));
-                       if (initialState.getPoint(i, x) == 0)
-                           initialState.setPoint(i, x, double.PositiveInfinity);
-                   }
-               }*/
+            /*for (int i = 0; i < Cities.Length; i++)
+            {
+                for(int x = 0; x < Cities.Length; x++)
+                {
+                    initialState.setPoint(i, x, Cities[i].costToGetTo(Cities[x]));
+                    if (initialState.getPoint(i, x) == 0)
+                        initialState.setPoint(i, x, double.PositiveInfinity);
+                }
+            }*/
+            initialState = new State();
             initialState.setMap(new double[4, 4]);
             //row 1
             initialState.setPoint(0, 0, double.PositiveInfinity);
@@ -330,7 +330,8 @@ namespace TSP
             Dictionary<int, int> bestSoFar = new Dictionary<int, int>();
             reduceMatrix(initialState);
             queue = new IntervalHeap<State>(); //this is a global queue
-            BSSF = greedy(); //this is a global double
+            //BSSF = greedy(); //this is a global double
+            BSSF = 28;
             findGreatestDiff(initialState);
 
             int iterator = 0;
@@ -340,7 +341,6 @@ namespace TSP
                 State min = queue.DeleteMin();
                 findGreatestDiff(min);
             }
-            Console.WriteLine(bestState.getLB());
             int hello = 0;
         }
         public void findGreatestDiff(State state)
@@ -365,7 +365,6 @@ namespace TSP
                 }
             }
             State include = makeInclude(chosenX, chosenY, state);
-            include.setEdges(state.getEdges());
             if (BSSF > include.getLB())
             {
                 queue.Add(include);
@@ -433,6 +432,7 @@ namespace TSP
                 }
             }
             reduceMatrix(includeState);
+            includeState.setEdges(state.getEdges());
             return includeState;
         }
         public State makeExclude(int x, int y, State state)
@@ -440,6 +440,7 @@ namespace TSP
             State excludeState = new State(copyMatrix(state.getMap()), state.getLB(), state.getEdges());
             excludeState.setPoint(x, y, double.PositiveInfinity);
             reduceMatrix(excludeState);
+            excludeState.setEdges(state.getEdges());
             return excludeState;
         }
         public double[,] copyMatrix(double[,] initialMatrix)
