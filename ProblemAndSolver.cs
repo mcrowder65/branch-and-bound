@@ -4,7 +4,8 @@ using System.Collections.Generic;
 using System.Text;
 using System.Drawing;
 using C5;
-
+using System.Diagnostics;
+using System.Data;
 namespace TSP
 {
 
@@ -166,6 +167,7 @@ namespace TSP
 
             Cities = new City[_size];
             initialState = new State(new Double[Cities.Length, Cities.Length]);
+
             Route = new ArrayList(_size);
             bssf = null;
 
@@ -285,15 +287,22 @@ namespace TSP
                 return -1D; 
         }
         double BSSF;
+        int bssfUpdates = 0;
+        int totalNumberStates =1;
+        int totalPrunes = 0;
         IntervalHeap<State> queue;
         State bestState;
+        Stopwatch timer;
         /// <summary>
         ///  solve the problem.  This is the entry point for the solver when the run button is clicked
         /// right now it just picks a simple solution. 
         /// </summary>
-        
+
         public void solveProblem()
         {
+            timer = new Stopwatch();
+            timer.Start();
+            
             for (int i = 0; i < Cities.Length; i++)
             {
                 for(int x = 0; x < Cities.Length; x++)
@@ -303,44 +312,74 @@ namespace TSP
                         initialState.setPoint(i, x, double.PositiveInfinity);
                 }
             }
-            /*initialState = new State();
-            initialState.setMap(new double[4, 4]);
-            //row 1
-            initialState.setPoint(0, 0, double.PositiveInfinity);
-            initialState.setPoint(0, 1, 7);
-            initialState.setPoint(0, 2, 3);
-            initialState.setPoint(0, 3, 12);
-            //row 2
-            initialState.setPoint(1, 0, 3);
-            initialState.setPoint(1, 1, double.PositiveInfinity);
-            initialState.setPoint(1, 2, 6);
-            initialState.setPoint(1, 3, 14);
-            //row 3
-            initialState.setPoint(2, 0, 5);
-            initialState.setPoint(2, 1, 8);
-            initialState.setPoint(2, 2, double.PositiveInfinity);
-            initialState.setPoint(2, 3, 6);
-            //row 4
-            initialState.setPoint(3, 0, 9);
-            initialState.setPoint(3, 1, 3);
-            initialState.setPoint(3, 2, 5);
-            initialState.setPoint(3, 3, double.PositiveInfinity);*/
 
             initialState.initializeEdges();
-            Dictionary<int, int> bestSoFar = new Dictionary<int, int>();
             reduceMatrix(initialState);
-            queue = new IntervalHeap<State>(); //this is a global queue
-            BSSF = greedy(); //this is a global double
-            findGreatestDiff(initialState);
 
-            int iterator = 0;
-            while(queue.Count != 0)
+            queue = new IntervalHeap<State>(); //this is a global queue
+            BSSF = greedy(); 
+
+            findGreatestDiff(initialState);
+            TimeSpan ts = timer.Elapsed;
+            bool terminatedEarly = false;
+            int maxStates = 0;
+            int totalSeconds = 0;
+            while (queue.Count != 0)
             {
-                iterator++;
+                if (queue.Count > maxStates)
+                    maxStates = queue.Count;
+                ts = timer.Elapsed;
+                if (ts.Seconds == 30)
+                {
+                    terminatedEarly = true;
+                    break;
+                }
                 State min = queue.DeleteMin();
-                findGreatestDiff(min);
+                if (totalSeconds < ts.Seconds)
+                {
+                    totalSeconds = ts.Seconds;
+                    Console.WriteLine("seconds: " + totalSeconds);
+                }
+                
+                if (min.getLB() < BSSF)
+                    findGreatestDiff(min);
+                else
+                    totalPrunes++;
             }
-            Console.WriteLine(BSSF);
+            if (!terminatedEarly && bestState != null)
+            {
+                int city = 0;
+                for (int i = 0; i < bestState.getEdges().Count; i++)
+                {
+                    if (i == 0)
+                    {
+                        Route.Add(Cities[i]);
+                        city = bestState.getEdge(i);
+                    }
+                    else
+                    {
+                        Route.Add(Cities[city]);
+                        city = bestState.getEdge(city);
+                    }
+                }
+                bssf = new TSPSolution(Route);
+                // update the cost of the tour. 
+                Program.MainForm.tbCostOfTour.Text = " " + bssf.costOfRoute();
+                // do a refresh. 
+                Program.MainForm.Invalidate();
+            }
+            Console.WriteLine("**************************************************");
+            Console.WriteLine("**************************************************");
+            Console.WriteLine("**************************************************");
+            Console.WriteLine("# Cities: " + Cities.Length);
+            Console.WriteLine("Seed: " + Seed);
+            Console.WriteLine("Time elapsed: " + ts.Seconds + "." + ts.Milliseconds);
+            Console.WriteLine("Best tour found: " + BSSF);
+            Console.WriteLine("Max states: " + maxStates);
+            Console.WriteLine("BSSF Updates: " + bssfUpdates);
+            Console.WriteLine("# of states created: " + totalNumberStates);
+            Console.WriteLine("# of prunes: " + totalPrunes);
+          //  System.Windows.Forms.Application.Exit();
         }
         public void findGreatestDiff(State state)
         {
@@ -366,24 +405,29 @@ namespace TSP
             State include = makeInclude(chosenX, chosenY, state);
             if (BSSF > include.getLB())
             {
-                
                 include.setEdge(chosenX, chosenY);
                 checkCycles(include, chosenX, chosenY);
                 queue.Add(include);
             }
+            else
+                totalPrunes++;
             if (isDictionaryFilled(include))
             {
                 BSSF = include.getLB();
+                bssfUpdates++;
                 bestState = include;
             }
 
             State exclude = makeExclude(chosenX, chosenY, state);
             if (BSSF > exclude.getLB())
                 queue.Add(exclude);
-
+            else
+                totalPrunes++;
             if (isDictionaryFilled(exclude))
             {
                 BSSF = exclude.getLB();
+                bestState = exclude;
+                bssfUpdates++;
             }
 
             //Console.WriteLine(exclude.getLB() + " " + include.getLB());
@@ -459,6 +503,7 @@ namespace TSP
         public State makeInclude(int x, int y, State state)
         {
             State includeState = new State(copyMatrix(state.getMap()), state.getLB(), state.getEdges());
+            totalNumberStates++;
             includeState.setPoint(y, x, double.PositiveInfinity);
             for (int j = 0; j < includeState.getMap().GetLength(1); j++) //set the row to infinity
             {
@@ -475,6 +520,7 @@ namespace TSP
         public State makeExclude(int x, int y, State state)
         {
             State excludeState = new State(copyMatrix(state.getMap()), state.getLB(), state.getEdges());
+            totalNumberStates++;
             excludeState.setPoint(x, y, double.PositiveInfinity);
             reduceMatrix(excludeState);
             excludeState.setEdges(state.getEdges());
@@ -538,7 +584,7 @@ namespace TSP
                     }
                     if (reloop)
                     {
-                        if (i == city-1)
+                        if (i == city - 1)
                             break;
                     }
                     iterations++;
@@ -549,16 +595,17 @@ namespace TSP
                     correctRoute = new ArrayList(Route);
                     break;
                 }
-                
+
             }
             int lastCity = visitedCities[visitedCities.Count - 1];
             BSSF += Cities[lastCity].costToGetTo(Cities[firstCity]);
-            
+
             bssf = new TSPSolution(correctRoute);
             // update the cost of the tour. 
             Program.MainForm.tbCostOfTour.Text = " " + bssf.costOfRoute();
             // do a refresh. 
             //Program.MainForm.Invalidate();
+            Route.Clear();
             return BSSF;
         }
         public double random(State currentState)

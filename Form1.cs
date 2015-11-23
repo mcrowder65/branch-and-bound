@@ -58,7 +58,7 @@ namespace TSP
             else
             {
                 MessageBox.Show("Problem size must be an integer.");
-                return 20;
+                return 14;
             };
         }
 
@@ -191,6 +191,11 @@ namespace TSP
             {
                 AlgorithmMenu2.ShowDropDown();
             }
+        }
+
+        private void tbProblemSize_Click(object sender, EventArgs e)
+        {
+            
         }
     }
 }

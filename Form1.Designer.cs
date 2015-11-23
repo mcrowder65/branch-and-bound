@@ -92,6 +92,7 @@ namespace TSP
             this.tbProblemSize.TextBoxTextAlign = System.Windows.Forms.HorizontalAlignment.Right;
             this.tbProblemSize.Leave += new System.EventHandler(this.tbProblemSize_Leave);
             this.tbProblemSize.KeyDown += new System.Windows.Forms.KeyEventHandler(this.tbProblemSize_KeyDown);
+            this.tbProblemSize.Click += new System.EventHandler(this.tbProblemSize_Click);
             // 
             // toolStripSeparator5
             // 
@@ -185,35 +186,35 @@ namespace TSP
             // dToolStripMenuItem
             // 
             this.dToolStripMenuItem.Name = "dToolStripMenuItem";
-            this.dToolStripMenuItem.Size = new System.Drawing.Size(122, 22);
+            this.dToolStripMenuItem.Size = new System.Drawing.Size(121, 22);
             this.dToolStripMenuItem.Text = "Default";
             this.dToolStripMenuItem.Click += new System.EventHandler(this.dToolStripMenuItem_Click);
             // 
             // yourTSPToolStripMenuItem1
             // 
             this.yourTSPToolStripMenuItem1.Name = "yourTSPToolStripMenuItem1";
-            this.yourTSPToolStripMenuItem1.Size = new System.Drawing.Size(122, 22);
+            this.yourTSPToolStripMenuItem1.Size = new System.Drawing.Size(121, 22);
             this.yourTSPToolStripMenuItem1.Text = "Your TSP";
             this.yourTSPToolStripMenuItem1.Click += new System.EventHandler(this.yourTSPToolStripMenuItem1_Click);
             // 
             // randomToolStripMenuItem1
             // 
             this.randomToolStripMenuItem1.Name = "randomToolStripMenuItem1";
-            this.randomToolStripMenuItem1.Size = new System.Drawing.Size(122, 22);
+            this.randomToolStripMenuItem1.Size = new System.Drawing.Size(121, 22);
             this.randomToolStripMenuItem1.Text = "Random";
             this.randomToolStripMenuItem1.Click += new System.EventHandler(this.randomToolStripMenuItem1_Click);
             // 
             // bBToolStripMenuItem
             // 
             this.bBToolStripMenuItem.Name = "bBToolStripMenuItem";
-            this.bBToolStripMenuItem.Size = new System.Drawing.Size(122, 22);
+            this.bBToolStripMenuItem.Size = new System.Drawing.Size(121, 22);
             this.bBToolStripMenuItem.Text = "B and B";
             this.bBToolStripMenuItem.Click += new System.EventHandler(this.bBToolStripMenuItem_Click);
             // 
             // greedyToolStripMenuItem
             // 
             this.greedyToolStripMenuItem.Name = "greedyToolStripMenuItem";
-            this.greedyToolStripMenuItem.Size = new System.Drawing.Size(122, 22);
+            this.greedyToolStripMenuItem.Size = new System.Drawing.Size(121, 22);
             this.greedyToolStripMenuItem.Text = "Greedy";
             this.greedyToolStripMenuItem.Click += new System.EventHandler(this.greedyToolStripMenuItem_Click);
             // 
