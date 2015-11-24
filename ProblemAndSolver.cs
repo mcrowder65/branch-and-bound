@@ -286,24 +286,20 @@ namespace TSP
             else
                 return -1D; 
         }
-        double BSSF;
-        int bssfUpdates = 0;
-        int totalNumberStates =1;
-        int totalPrunes = 0;
-        IntervalHeap<State> queue;
-        State bestState;
-        Stopwatch timer;
-        /// <summary>
-        ///  solve the problem.  This is the entry point for the solver when the run button is clicked
-        /// right now it just picks a simple solution. 
-        /// </summary>
 
+        double BSSF; // Best solution so far
+        int bssfUpdates = 0; //keeps track of how many times the BSSF has been updated
+        int totalNumberStates = 1; //keeps track of how many states have been made, initialize to 1 bc of initial state
+        int totalPrunes = 0; //keeps track of total prunes
+        IntervalHeap<State> queue; //global queue
+        State bestState; //global bestState
+        Stopwatch timer; //global timer
         public void solveProblem()
         {
             timer = new Stopwatch();
             timer.Start();
             
-            for (int i = 0; i < Cities.Length; i++)
+            for (int i = 0; i < Cities.Length; i++) //O(n^2), initialize initialStates map
             {
                 for(int x = 0; x < Cities.Length; x++)
                 {
@@ -313,21 +309,22 @@ namespace TSP
                 }
             }
 
-            initialState.initializeEdges();
-            reduceMatrix(initialState);
+            initialState.initializeEdges(); //initializeEdges initializes the state's dictionary
+                                            //with key 0 to n(# of cities), value -> -1
+            reduceMatrix(initialState); //reduce the matrix to find lower bound
 
             queue = new IntervalHeap<State>(); //this is a global queue
-            BSSF = greedy(); 
+            BSSF = greedy(); //find initial best solution so far
 
-            findGreatestDiff(initialState);
+            findGreatestDiff(initialState); //exlude minus include, O(n^4)
             TimeSpan ts = timer.Elapsed;
-            bool terminatedEarly = false;
-            int maxStates = 0;
-            int totalSeconds = 0;
-            while (queue.Count != 0)
+            bool terminatedEarly = false; //boolean to keep track if we stopped after 30 seconds
+            int maxStates = 0; //keeps track of the maximum amount of states in the queue at one point
+            int totalSeconds = 0; 
+            while (queue.Count != 0) //some complexity
             {
-                if (queue.Count > maxStates)
-                    maxStates = queue.Count;
+                if (queue.Count > maxStates) //if maxStates needs to be updated, update it
+                    maxStates = queue.Count; 
                 ts = timer.Elapsed;
                 if (ts.Seconds == 30)
                 {
@@ -340,18 +337,19 @@ namespace TSP
                     totalSeconds = ts.Seconds;
                     Console.WriteLine("seconds: " + totalSeconds);
                 }
-                
-                if (min.getLB() < BSSF)
-                    findGreatestDiff(min);
+
+                if (min.getLB() < BSSF)   //if the min popped off the queue has a lowerbound less than
+                    findGreatestDiff(min);//the BSSF, expand it, otherwise, prune it.
                 else
-                    totalPrunes++;
+                    break;
             }
-            if (!terminatedEarly && bestState != null)
-            {
+            totalPrunes++;
+            if (!terminatedEarly)//if it solved the problem in less than 30 seconds
+            { 
                 int city = 0;
-                for (int i = 0; i < bestState.getEdges().Count; i++)
+                for (int i = 0; i < bestState.getEdges().Count; i++) 
                 {
-                    if (i == 0)
+                    if (i == 0) //outputting a map into the Route list
                     {
                         Route.Add(Cities[i]);
                         city = bestState.getEdge(i);
@@ -365,6 +363,7 @@ namespace TSP
                 bssf = new TSPSolution(Route);
                 // update the cost of the tour. 
                 Program.MainForm.tbCostOfTour.Text = " " + bssf.costOfRoute();
+                Program.MainForm.tbElapsedTime.Text = ts.TotalSeconds.ToString();
                 // do a refresh. 
                 Program.MainForm.Invalidate();
             }
@@ -381,19 +380,19 @@ namespace TSP
             Console.WriteLine("# of prunes: " + totalPrunes);
           //  System.Windows.Forms.Application.Exit();
         }
-        public void findGreatestDiff(State state)
+        public void findGreatestDiff(State state)//O(n^4)
         {
             int chosenX = 0;
             int chosenY = 0;
             double greatestDiff = double.NegativeInfinity;
-            for (int i = 0; i < state.getMap().GetLength(0); i++)
+            for (int i = 0; i < state.getMap().GetLength(0); i++) //rows, O(n^4)
             {
-                for (int j = 0; j < state.getMap().GetLength(1); j++)
+                for (int j = 0; j < state.getMap().GetLength(1); j++) //columns
                 {
-                    if (state.getPoint(i, j) == 0)
+                    if (state.getPoint(i, j) == 0) //if point is 0
                     {
-                        int possibleMax = findExcludeMinusInclude(i, j, state);
-                        if (possibleMax >= greatestDiff)
+                        int possibleMax = findExcludeMinusInclude(i, j, state); //O(n^2)
+                        if (possibleMax >= greatestDiff) //set the point to point values, if it is 0 is covered by =
                         {
                             chosenX = i;
                             chosenY = j;
@@ -402,28 +401,29 @@ namespace TSP
                     }
                 }
             }
-            State include = makeInclude(chosenX, chosenY, state);
+            State include = makeInclude(chosenX, chosenY, state); //O(n^2)
             if (BSSF > include.getLB())
             {
                 include.setEdge(chosenX, chosenY);
-                checkCycles(include, chosenX, chosenY);
+                checkCycles(include, chosenX, chosenY); //O(n)
                 queue.Add(include);
             }
             else
                 totalPrunes++;
-            if (isDictionaryFilled(include))
+
+            if (isDictionaryFilled(include))//O(n)
             {
                 BSSF = include.getLB();
                 bssfUpdates++;
                 bestState = include;
             }
 
-            State exclude = makeExclude(chosenX, chosenY, state);
+            State exclude = makeExclude(chosenX, chosenY, state);//O(n^2)
             if (BSSF > exclude.getLB())
                 queue.Add(exclude);
             else
                 totalPrunes++;
-            if (isDictionaryFilled(exclude))
+            if (isDictionaryFilled(exclude))//O(n)
             {
                 BSSF = exclude.getLB();
                 bestState = exclude;
@@ -432,16 +432,16 @@ namespace TSP
 
             //Console.WriteLine(exclude.getLB() + " " + include.getLB());
         }
-        public void checkCycles(State state, int i, int j)
+        public void checkCycles(State state, int i, int j) //O(n)
         {
             Dictionary<int, int> edges = new Dictionary<int, int>(state.getEdges());
             if (getDictionarySize(edges) == edges.Count)
                 return;
             int[] entered = new int[edges.Count];
             int[] exited = new int[edges.Count];
-            for (int x = 0; x < entered.Length; x++)
+            for (int x = 0; x < entered.Length; x++) //O(n)
                 entered[x] = -1;
-            for (int x = 0; x < edges.Count; x++)
+            for (int x = 0; x < edges.Count; x++) //O(n)
             {
                 exited[x] = edges[x];
                 if (exited[x] != -1)
@@ -453,13 +453,13 @@ namespace TSP
 
             int start = i;
             int end = j;
-            while(exited[end] != -1)
+            while(exited[end] != -1) //O(n)
                 end = exited[end];
-            while (entered[start] != -1)
+            while (entered[start] != -1)//O(n)
                 start = entered[start];
             if (getDictionarySize(edges) != edges.Count - 1)
             {
-                while (start != j)
+                while (start != j) //O(n)
                 {
                     state.setPoint(end, start, double.PositiveInfinity);
                     state.setPoint(j, start, double.PositiveInfinity);
@@ -467,7 +467,7 @@ namespace TSP
                 }
             }
         }
-        public int getDictionarySize(Dictionary<int, int> dictionary)
+        public int getDictionarySize(Dictionary<int, int> dictionary) //O(n)
         {
             int size = 0;
             for(int i = 0; i < dictionary.Count; i++)
@@ -477,7 +477,7 @@ namespace TSP
             }
             return size;
         }
-        public bool isDictionaryFilled(State state)
+        public bool isDictionaryFilled(State state)//O(n)
         {
             for(int i = 0; i < state.getEdges().Count; i++)
             {
@@ -486,47 +486,44 @@ namespace TSP
             }
             return true;
         }
-        public int findExcludeMinusInclude(int x, int y, State state)
+        public int findExcludeMinusInclude(int x, int y, State state)//O(n^2)
         {
-            
-            double[,] excludeMatrix = new double[4, 4];
+            State excludeState = makeExclude(x, y, state); //O(n^2)
+            reduceMatrix(excludeState);//O(n^2)
 
-            State excludeState = makeExclude(x, y, state);
-            reduceMatrix(excludeState);
-
-            State includeState = makeInclude(x, y, state);
-            reduceMatrix(includeState);
+            State includeState = makeInclude(x, y, state); //O(n^2)
+            reduceMatrix(includeState); //O(n^2)
             
             int cost = Convert.ToInt32(excludeState.getLB() - includeState.getLB());
             return cost;
         }
-        public State makeInclude(int x, int y, State state)
+        public State makeInclude(int x, int y, State state) //O(n^2)
         {
-            State includeState = new State(copyMatrix(state.getMap()), state.getLB(), state.getEdges());
+            State includeState = new State(copyMatrix(state.getMap()), state.getLB(), state.getEdges()); //O(n^2)
             totalNumberStates++;
             includeState.setPoint(y, x, double.PositiveInfinity);
-            for (int j = 0; j < includeState.getMap().GetLength(1); j++) //set the row to infinity
+            for (int j = 0; j < includeState.getMap().GetLength(1); j++) //set the row to infinity, O(n)
             {
                 includeState.setPoint(x, j, double.PositiveInfinity);
             }
-            for (int i = 0; i < includeState.getMap().GetLength(0); i++) //set the column to infinity
+            for (int i = 0; i < includeState.getMap().GetLength(0); i++) //set the column to infinity, O(n)
             {
                 includeState.setPoint(i, y, double.PositiveInfinity);
             }
-            reduceMatrix(includeState);
+            reduceMatrix(includeState); //O(n^2)
             includeState.setEdges(state.getEdges());
             return includeState;
         }
-        public State makeExclude(int x, int y, State state)
+        public State makeExclude(int x, int y, State state) //O(n^2)
         {
-            State excludeState = new State(copyMatrix(state.getMap()), state.getLB(), state.getEdges());
+            State excludeState = new State(copyMatrix(state.getMap()), state.getLB(), state.getEdges()); //O(n^2)
             totalNumberStates++;
             excludeState.setPoint(x, y, double.PositiveInfinity);
-            reduceMatrix(excludeState);
+            reduceMatrix(excludeState); //O(n^2)
             excludeState.setEdges(state.getEdges());
             return excludeState;
         }
-        public double[,] copyMatrix(double[,] initialMatrix)
+        public double[,] copyMatrix(double[,] initialMatrix) //O(n^2)
         {
             double[,] copy = new double[initialMatrix.GetLength(0), initialMatrix.GetLength(1)];
             for(int i = 0; i < initialMatrix.GetLength(0); i++)
@@ -538,14 +535,14 @@ namespace TSP
             }
             return copy;
         }
-        public double greedy()
+        public double greedy() //O(n^2)
         {
             double BSSF = 0;
             ArrayList correctRoute = new ArrayList();
             List<int> visitedCities = new List<int>();
             int firstCity = -1;
             int iterations = 0;
-            for (int city = 0; city < Cities.Length; city++)
+            for (int city = 0; city < Cities.Length; city++) //O(n^2)
             {
                 iterations = 0;
                 bool reloop = false;
@@ -673,12 +670,11 @@ namespace TSP
                 Console.WriteLine();
             }
         }
-        public void reduceMatrix(State currentState)
+        public void reduceMatrix(State currentState) //O(n^2)
         {
-         //   outputMap(currentState);
             double lowerBound = currentState.getLB() ;
             for (int i = 0; i < currentState.getMap().GetLength(0); i++) // reduce rows
-            {
+            {//O(n^2)
                 double minimum = double.PositiveInfinity;
                 for (int j = 0; j < currentState.getMap().GetLength(1); j++)
                 {
@@ -698,7 +694,7 @@ namespace TSP
                 }
             }
             for (int j = 0; j < currentState.getMap().GetLength(1); j++) //reduce columns
-            {
+            {//O(n^2)
                 double minimum = double.PositiveInfinity;
                 for (int i = 0; i < currentState.getMap().GetLength(0); i++)
                 {
@@ -723,75 +719,3 @@ namespace TSP
     }
 
 }
-/*Route = new ArrayList(Cities.Length);
-HashSet<int> unvisitedIndexes = new HashSet<int>(); // using a city's index in Cities, we can interate through indexes that have yet to be added
-            for (int index = 0; index<Cities.Length; index++)
-            {
-                unvisitedIndexes.Add(index);
-            }
-
-            print("\n\nTESTING\n");
-
-City city;
-            for (int i = 0; i<Cities.Length; i++) // keep trying start nodes until a solution is found
-            {
-                if (Route.Count == Cities.Length)
-                {
-                    break; // DONE!
-                }
-                else
-                {
-                    Route.Clear();
-                    for (int index = 0; index<Cities.Length; index++)
-                    {
-                        unvisitedIndexes.Add(index);
-                    }
-                    city = Cities[i];
-                }
-
-                for (int n = 0; n<Cities.Length; n++) // add nodes n times
-                {
-
-                    double shortestDistance = Double.PositiveInfinity;
-int closestIndex = -1;
-                    foreach (int check in unvisitedIndexes) //find the closest city to add to route
-                    {
-                        double distance = city.costToGetTo(Cities[check]);
-                        if (distance<shortestDistance)
-                        {
-                            shortestDistance = distance;
-                            closestIndex = check;
-                        }
-                    }
-
-                    if (closestIndex != -1)
-                    {
-                        city = Cities[closestIndex];
-                        Route.Add(city);
-                        unvisitedIndexes.Remove(closestIndex);
-                    }
-                    else
-                    {
-                        break; // try again
-                    }
-                }                
-            }
-
-            // call this the best solution so far.  bssf is the route that will be drawn by the Draw method. 
-            bssf = new TSPSolution(Route);
-// update the cost of the tour. 
-Program.MainForm.tbCostOfTour.Text = " " + bssf.costOfRoute();
-            // do a refresh. 
-            Program.MainForm.Invalidate();*/
-
-
-
-/*Console.WriteLine("**************************************************");
-        Console.WriteLine("INITIAL STATE");
-        outputMap(state);
-        Console.WriteLine("**************************************************");
-        Console.WriteLine("EXCLUDE STATE");
-        outputMap(excludeState);
-        Console.WriteLine("**************************************************");
-        Console.WriteLine("INCLUDE STATE");
-        outputMap(includeState);*/
