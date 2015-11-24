@@ -314,7 +314,7 @@ namespace TSP
             reduceMatrix(initialState); //reduce the matrix to find lower bound
 
             queue = new IntervalHeap<State>(); //this is a global queue
-            BSSF = greedy(); //find initial best solution so far, O(n^3)
+            BSSF = greedy(); //find initial best solution so far, O(n^4)
             Console.WriteLine("BSSF: " + BSSF);
             findGreatestDiff(initialState); //exclude minus include, O(n^3)
             TimeSpan ts = timer.Elapsed;
@@ -595,13 +595,13 @@ namespace TSP
             }
             currentState.setLB(lowerBound); //set the lowerbound
         }
-        public double greedy() //O(n^3)
+        public double greedy() //O(n^4)
         {
             double BSSF = 0;
             List<int> visitedCities = new List<int>(); //used to keep track of visited cities
             int firstCity = -1;
             int iterations = 0; //used to loop around, e.g. if we start at city 4, we want to eventually see cities 0, 1, 2, 3
-            for (int city = 0; city < Cities.Length; city++) //O(n^3)
+            for (int city = 0; city < Cities.Length; city++) //O(n^4)
             {
                 iterations = 0;
                 BSSF = 0;
