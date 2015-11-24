@@ -310,13 +310,13 @@ namespace TSP
             }
 
             initialState.initializeEdges(); //initializeEdges initializes the state's dictionary
-                                            //with key 0 to n(# of cities), value -> -1
+                                            //with key 0 to n (# of cities), value -> -1
             reduceMatrix(initialState); //reduce the matrix to find lower bound
 
             queue = new IntervalHeap<State>(); //this is a global queue
-            BSSF = greedy(); //find initial best solution so far
-
-            findGreatestDiff(initialState); //exlude minus include, O(n^4)
+            BSSF = greedy(); //find initial best solution so far, O(n^3)
+            Console.WriteLine("BSSF: " + BSSF);
+            findGreatestDiff(initialState); //exclude minus include, O(n^4)
             TimeSpan ts = timer.Elapsed;
             bool terminatedEarly = false; //boolean to keep track if we stopped after 30 seconds
             int maxStates = 0; //keeps track of the maximum amount of states in the queue at one point
@@ -331,7 +331,7 @@ namespace TSP
                     terminatedEarly = true;
                     break;
                 }
-                State min = queue.DeleteMin();
+                State min = queue.DeleteMin(); 
                 if (totalSeconds < ts.Seconds)
                 {
                     totalSeconds = ts.Seconds;
@@ -339,15 +339,17 @@ namespace TSP
                 }
 
                 if (min.getLB() < BSSF)   //if the min popped off the queue has a lowerbound less than
-                    findGreatestDiff(min);//the BSSF, expand it, otherwise, prune it.
+                    findGreatestDiff(min);//the BSSF, expand it, otherwise, prune it. -> O(n^4)
                 else
+                {//all of the lowerbounds are worse than the BSSF, break!
+                    totalPrunes += queue.Count; //add those pruned states to the total amount of prunes
                     break;
+                }
             }
-            totalPrunes++;
             if (!terminatedEarly)//if it solved the problem in less than 30 seconds
             { 
                 int city = 0;
-                for (int i = 0; i < bestState.getEdges().Count; i++) 
+                for (int i = 0; i < bestState.getEdges().Count; i++) //O(n)
                 {
                     if (i == 0) //outputting a map into the Route list
                     {
@@ -382,9 +384,10 @@ namespace TSP
         }
         public void findGreatestDiff(State state)//O(n^4)
         {
-            int chosenX = 0;
+            int chosenX = 0; //city x to city y
             int chosenY = 0;
-            double greatestDiff = double.NegativeInfinity;
+            double greatestDiff = double.NegativeInfinity; //initialize to -oo to find what the greatest
+                                                           //difference is
             for (int i = 0; i < state.getMap().GetLength(0); i++) //rows, O(n^4)
             {
                 for (int j = 0; j < state.getMap().GetLength(1); j++) //columns
@@ -402,41 +405,42 @@ namespace TSP
                 }
             }
             State include = makeInclude(chosenX, chosenY, state); //O(n^2)
-            if (BSSF > include.getLB())
+            if (BSSF > include.getLB()) //if include's lowerbound is better than the BSSF
             {
-                include.setEdge(chosenX, chosenY);
-                checkCycles(include, chosenX, chosenY); //O(n)
-                queue.Add(include);
+                include.setEdge(chosenX, chosenY); //set the edge in the dictionary
+                checkCycles(include, chosenX, chosenY); //O(n), make sure there are no potential cycles
+                queue.Add(include); //add to the queue to be popped off later
             }
             else
-                totalPrunes++;
+                totalPrunes++; //if the lowerbound is worse than the BSSF, prune it
 
-            if (isDictionaryFilled(include))//O(n)
-            {
+            if (isDictionaryFilled(include))//O(n), have all of the edges been filled? then the include.LB is better
+            {                               //than the current BSSF, set the BSSF
                 BSSF = include.getLB();
-                bssfUpdates++;
-                bestState = include;
+                bssfUpdates++; //increment the amount of BSSFs
+                bestState = include; //save the "bestState"
             }
 
             State exclude = makeExclude(chosenX, chosenY, state);//O(n^2)
-            if (BSSF > exclude.getLB())
+            if (BSSF > exclude.getLB()) //if exclude's lowerbound is than the BSSF, add it to the queue
                 queue.Add(exclude);
             else
-                totalPrunes++;
-            if (isDictionaryFilled(exclude))//O(n)
-            {
+                totalPrunes++; //otherwise, prune it
+
+            if (isDictionaryFilled(exclude))//O(n), have all of the edges been filled?
+            {                               // then exclude's lowerbound is better, set the BSSF to exclude.LB
                 BSSF = exclude.getLB();
                 bestState = exclude;
-                bssfUpdates++;
+                bssfUpdates++; //increment bssfUpdates
             }
 
-            //Console.WriteLine(exclude.getLB() + " " + include.getLB());
         }
         public void checkCycles(State state, int i, int j) //O(n)
         {
             Dictionary<int, int> edges = new Dictionary<int, int>(state.getEdges());
-            if (getDictionarySize(edges) == edges.Count)
+            if (getDictionarySize(edges) == edges.Count) //if the dictionary is full, stop
                 return;
+
             int[] entered = new int[edges.Count];
             int[] exited = new int[edges.Count];
             for (int x = 0; x < entered.Length; x++) //O(n)
@@ -448,6 +452,10 @@ namespace TSP
                     entered[exited[x]] = x;
             }
             
+            //the two loops above "flip" the arrays with value and index, e.g. if
+            //entered contained [0]=2, [1]=0, [2]=1
+            //exited will now contain [0]=1, [1]=2, [2]=0
+
             entered[j] = i;
             exited[i] = j;
 
@@ -457,9 +465,9 @@ namespace TSP
                 end = exited[end];
             while (entered[start] != -1)//O(n)
                 start = entered[start];
-            if (getDictionarySize(edges) != edges.Count - 1)
-            {
-                while (start != j) //O(n)
+            if (getDictionarySize(edges) != edges.Count - 1) //if there is only one point left to fill,
+            {                                                //this will think there is a cycle, so make
+                while (start != j) //O(n)                      make sure there isn't one element left
                 {
                     state.setPoint(end, start, double.PositiveInfinity);
                     state.setPoint(j, start, double.PositiveInfinity);
@@ -468,7 +476,7 @@ namespace TSP
             }
         }
         public int getDictionarySize(Dictionary<int, int> dictionary) //O(n)
-        {
+        {//returns how many edges have been initialized
             int size = 0;
             for(int i = 0; i < dictionary.Count; i++)
             {
@@ -478,16 +486,16 @@ namespace TSP
             return size;
         }
         public bool isDictionaryFilled(State state)//O(n)
-        {
+        { //returns whether or not the all of the edges have been added
             for(int i = 0; i < state.getEdges().Count; i++)
             {
                 if (state.getEdge(i) == -1)
-                    return false;
+                    return false; //if one hasn't been added, then it isn't full
             }
             return true;
         }
         public int findExcludeMinusInclude(int x, int y, State state)//O(n^2)
-        {
+        { //finds the exlude minus the include of a point in a matrix
             State excludeState = makeExclude(x, y, state); //O(n^2)
             reduceMatrix(excludeState);//O(n^2)
 
@@ -501,7 +509,7 @@ namespace TSP
         {
             State includeState = new State(copyMatrix(state.getMap()), state.getLB(), state.getEdges()); //O(n^2)
             totalNumberStates++;
-            includeState.setPoint(y, x, double.PositiveInfinity);
+            includeState.setPoint(y, x, double.PositiveInfinity); //set the "opposite point to infinity"
             for (int j = 0; j < includeState.getMap().GetLength(1); j++) //set the row to infinity, O(n)
             {
                 includeState.setPoint(x, j, double.PositiveInfinity);
@@ -511,98 +519,125 @@ namespace TSP
                 includeState.setPoint(i, y, double.PositiveInfinity);
             }
             reduceMatrix(includeState); //O(n^2)
-            includeState.setEdges(state.getEdges());
+            includeState.setEdges(state.getEdges()); //initialize includeState's dictionary of edges
             return includeState;
         }
         public State makeExclude(int x, int y, State state) //O(n^2)
         {
             State excludeState = new State(copyMatrix(state.getMap()), state.getLB(), state.getEdges()); //O(n^2)
-            totalNumberStates++;
-            excludeState.setPoint(x, y, double.PositiveInfinity);
+            totalNumberStates++; //increment total number of states
+            excludeState.setPoint(x, y, double.PositiveInfinity); //make chosen point infinity
             reduceMatrix(excludeState); //O(n^2)
-            excludeState.setEdges(state.getEdges());
+            excludeState.setEdges(state.getEdges()); //initialize excludeStates edges
             return excludeState;
         }
-        public double[,] copyMatrix(double[,] initialMatrix) //O(n^2)
-        {
-            double[,] copy = new double[initialMatrix.GetLength(0), initialMatrix.GetLength(1)];
-            for(int i = 0; i < initialMatrix.GetLength(0); i++)
+        public double[,] copyMatrix(double[,] matrix) //O(n^2)
+        {//this makes copy of any desired matrix, used because of pointer nonsense
+            double[,] copy = new double[matrix.GetLength(0), matrix.GetLength(1)];
+            for(int i = 0; i < matrix.GetLength(0); i++)
             {
-                for(int j = 0; j < initialMatrix.GetLength(1); j++)
+                for(int j = 0; j < matrix.GetLength(1); j++)
                 {
-                    copy[i, j] = initialMatrix[i, j];
+                    copy[i, j] = matrix[i, j];
                 }
             }
             return copy;
         }
-        public double greedy() //O(n^2)
+        public void reduceMatrix(State currentState) //O(n^2)
+        {
+            double lowerBound = currentState.getLB();
+            for (int i = 0; i < currentState.getMap().GetLength(0); i++) // reduce rows
+            {//O(n^2)
+                double minimum = double.PositiveInfinity; //find the lowest value in that row to reduce
+                for (int j = 0; j < currentState.getMap().GetLength(1); j++)
+                {
+                    if (currentState.getPoint(i, j) < minimum)
+                        minimum = currentState.getPoint(i, j);
+                }
+                if (minimum == 0) //if there is already a 0 in that row, don't waste time looping through it
+                    continue;
+                if (minimum != double.PositiveInfinity)
+                {
+                    for (int j = 0; j < currentState.getMap().GetLength(1); j++)
+                    { //reduce the other entire row by that value
+                        double reducedPoint = currentState.getPoint(i, j) - minimum;
+                        currentState.setPoint(i, j, reducedPoint);
+                    }
+                    lowerBound += minimum; //add that lowest value to the lowerBound
+                }
+            }
+            for (int j = 0; j < currentState.getMap().GetLength(1); j++) //reduce columns
+            {//O(n^2)
+                double minimum = double.PositiveInfinity;
+                for (int i = 0; i < currentState.getMap().GetLength(0); i++)
+                {
+                    if (currentState.getPoint(i, j) < minimum)
+                        minimum = currentState.getPoint(i, j); //find the lowest value in the column
+                }
+                if (minimum == 0) //if there is already a 0 in that column, don't waste time looping through it
+                    continue;
+                if (minimum != double.PositiveInfinity)
+                {
+                    for (int i = 0; i < currentState.getMap().GetLength(0); i++)
+                    {//reduce the entire column by that value
+                        double lowerPoint = currentState.getPoint(i, j) - minimum;
+                        currentState.setPoint(i, j, lowerPoint);
+                    }
+                    lowerBound += minimum; //add that minimum value to the lowerBound
+                }
+            }
+            currentState.setLB(lowerBound); //set the lowerbound
+        }
+        public double greedy() //O(n^3)
         {
             double BSSF = 0;
-            ArrayList correctRoute = new ArrayList();
-            List<int> visitedCities = new List<int>();
+            List<int> visitedCities = new List<int>(); //used to keep track of visited cities
             int firstCity = -1;
-            int iterations = 0;
-            for (int city = 0; city < Cities.Length; city++) //O(n^2)
+            int iterations = 0; //used to loop around, e.g. if we start at city 4, we want to eventually see cities 0, 1, 2, 3
+            for (int city = 0; city < Cities.Length; city++) //O(n^3)
             {
                 iterations = 0;
-                bool reloop = false;
                 BSSF = 0;
-                visitedCities.Clear();
+                visitedCities.Clear(); //clear everything, we start at a new node!
                 Route.Clear();
-                Route.Add(Cities[city]);
+                Route.Add(Cities[city]); //initialize route and visited cities with the first city
                 visitedCities.Add(city);
-                for (int i = city; i < Cities.Length; i++)
+                for (int i = city; i < Cities.Length; i++)//O(n^3)
                 {
                     double minimum = double.PositiveInfinity;
                     int chosenCity = -1;
-                    for (int j = 0; j < Cities.Length; j++)
+                    for (int j = 0; j < Cities.Length; j++)//O(n^2)
                     {
                         double potentialMinimum = Cities[i].costToGetTo(Cities[j]);
-                        if (potentialMinimum < minimum && !visitedCities.Contains(j) && i != j)
+                        if (potentialMinimum < minimum && !visitedCities.Contains(j) && i != j)//O(n)
                         {
                             minimum = potentialMinimum;
                             chosenCity = j;
                         }
                     }
-                    if (chosenCity == -1)
-                    {
+                    if (chosenCity == -1)//if there are no other paths, break
                         break;
-                    }
                     else
                     {
                         BSSF += minimum;
                         visitedCities.Add(chosenCity);
                         Route.Add(Cities[chosenCity]);
                     }
-                    if (i == Cities.Length - 1 && iterations != Cities.Length - 1)
-                    {
-                        reloop = true;
-                        i = -1;
-                    }
-                    if (reloop)
-                    {
-                        if (i == city - 1)
-                            break;
-                    }
-                    iterations++;
+                    if (i == Cities.Length - 1 && iterations != Cities.Length - 1) //if you are at the max cities but 
+                        i = -1;                                                    //haven't finished looping back around,
+                    iterations++;                                                  //set i to -1 to loop back around
                 }
-                if (BSSF < double.PositiveInfinity)
-                {
+                int last = visitedCities[visitedCities.Count - 1];
+                if (BSSF < double.PositiveInfinity && Cities[last].costToGetTo(Cities[city]) != double.PositiveInfinity)
+                { //if we have found a BSSF and the last city to the first city doesn't equal infinity, break
                     firstCity = city;
-                    correctRoute = new ArrayList(Route);
                     break;
                 }
 
             }
             int lastCity = visitedCities[visitedCities.Count - 1];
-            BSSF += Cities[lastCity].costToGetTo(Cities[firstCity]);
-
-            bssf = new TSPSolution(correctRoute);
-            // update the cost of the tour. 
-            Program.MainForm.tbCostOfTour.Text = " " + bssf.costOfRoute();
-            // do a refresh. 
-            //Program.MainForm.Invalidate();
-            Route.Clear();
+            BSSF += Cities[lastCity].costToGetTo(Cities[firstCity]); //add the last city to the first city distance
+            Route.Clear(); //clear route for later use
             return BSSF;
         }
         public double random(State currentState)
@@ -670,51 +705,7 @@ namespace TSP
                 Console.WriteLine();
             }
         }
-        public void reduceMatrix(State currentState) //O(n^2)
-        {
-            double lowerBound = currentState.getLB() ;
-            for (int i = 0; i < currentState.getMap().GetLength(0); i++) // reduce rows
-            {//O(n^2)
-                double minimum = double.PositiveInfinity;
-                for (int j = 0; j < currentState.getMap().GetLength(1); j++)
-                {
-                    if (currentState.getPoint(i, j) < minimum)
-                        minimum = currentState.getPoint(i, j);
-                }
-                if (minimum == 0) //if there is already a 0 in that row, don't waste time looping through it
-                    continue;
-                if (minimum != double.PositiveInfinity)
-                {
-                    for (int j = 0; j < currentState.getMap().GetLength(1); j++)
-                    {
-                        double reducedPoint = currentState.getPoint(i, j) - minimum;
-                        currentState.setPoint(i, j, reducedPoint);
-                    }
-                    lowerBound += minimum;
-                }
-            }
-            for (int j = 0; j < currentState.getMap().GetLength(1); j++) //reduce columns
-            {//O(n^2)
-                double minimum = double.PositiveInfinity;
-                for (int i = 0; i < currentState.getMap().GetLength(0); i++)
-                {
-                    if (currentState.getPoint(i, j) < minimum)
-                        minimum = currentState.getPoint(i, j);
-                }
-                if (minimum == 0) //if there is already a 0 in that column, don't waste time looping through it
-                    continue;
-                if (minimum != double.PositiveInfinity)
-                {
-                    for (int i = 0; i < currentState.getMap().GetLength(0); i++)
-                    {
-                        double lowerPoint = currentState.getPoint(i, j) - minimum;
-                        currentState.setPoint(i, j, lowerPoint);
-                    }
-                    lowerBound += minimum;
-                }
-            }
-            currentState.setLB(lowerBound);
-        }
+       
         #endregion
     }
 
