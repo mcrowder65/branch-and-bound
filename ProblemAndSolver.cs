@@ -316,12 +316,12 @@ namespace TSP
             queue = new IntervalHeap<State>(); //this is a global queue
             BSSF = greedy(); //find initial best solution so far, O(n^3)
             Console.WriteLine("BSSF: " + BSSF);
-            findGreatestDiff(initialState); //exclude minus include, O(n^4)
+            findGreatestDiff(initialState); //exclude minus include, O(n^3)
             TimeSpan ts = timer.Elapsed;
             bool terminatedEarly = false; //boolean to keep track if we stopped after 30 seconds
             int maxStates = 0; //keeps track of the maximum amount of states in the queue at one point
             int totalSeconds = 0; 
-            while (queue.Count != 0) //O(2^n * n^4), because each time you expand a node, it expands it 2 times, exponentially
+            while (queue.Count != 0) //O(2^n * n^3), because each time you expand a node, it expands it 2 times, exponentially
             {                        //where n is the number of cities
                 if (queue.Count > maxStates) //if maxStates needs to be updated, update it
                     maxStates = queue.Count; 
@@ -339,7 +339,7 @@ namespace TSP
                 }
 
                 if (min.getLB() < BSSF)   //if the min popped off the queue has a lowerbound less than
-                    findGreatestDiff(min);//the BSSF, expand it, otherwise, prune it. -> O(n^4)
+                    findGreatestDiff(min);//the BSSF, expand it, otherwise, prune it. -> O(n^3)
                 else
                 {//all of the lowerbounds are worse than the BSSF, break!
                     totalPrunes += queue.Count; //add those pruned states to the total amount of prunes
@@ -382,14 +382,14 @@ namespace TSP
             Console.WriteLine("# of prunes: " + totalPrunes);
           //  System.Windows.Forms.Application.Exit();
         }
-        public void findGreatestDiff(State state)//O(n^4)
+        public void findGreatestDiff(State state)//O(n^3)
         {
             int chosenX = 0; //city x to city y
             int chosenY = 0;
             double greatestDiff = double.NegativeInfinity; //initialize to -oo to find what the greatest
                                                            //difference is
             List<PointF> points = new List<PointF>();
-            for (int i = 0; i < state.getMap().GetLength(0); i++) //rows, O(n^2)
+            for (int i = 0; i < state.getMap().GetLength(0); i++) //rows, O(n)
             {
                 for (int j = 0; j < state.getMap().GetLength(1); j++) //columns
                 {
@@ -401,7 +401,7 @@ namespace TSP
                 }
             }
             for(int i = 0; i < points.Count; i++) //loop through 0's to find the greatest difference
-            {//O(n^4)                               there will be atmost n^2 points, because the entire
+            {//O(n^3)                               there will be atmost n points, because the entire
                                                   //matrix will be 0
                 int possibleMax = findExcludeMinusInclude(Convert.ToInt32(points[i].X), Convert.ToInt32(points[i].Y), state); //O(n^2)
                 if (possibleMax >= greatestDiff) //set the point to point values, if it is 0 is covered by =

@@ -10,7 +10,6 @@ namespace TSP
     {
         double[,] map;
         double LB;
-        int index;
         Dictionary<int, int> edges;
         public State() { }
         public State(double[,] map)
@@ -48,14 +47,6 @@ namespace TSP
         public Dictionary<int, int> getEdges()
         {
             return edges;
-        }
-        public int getIndex()
-        {
-            return index;
-        }
-        public void setIndex(int temp)
-        {
-            index = temp;
         }
         public void setMap(double[,] temp)
         {
