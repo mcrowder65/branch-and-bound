@@ -321,8 +321,8 @@ namespace TSP
             bool terminatedEarly = false; //boolean to keep track if we stopped after 30 seconds
             int maxStates = 0; //keeps track of the maximum amount of states in the queue at one point
             int totalSeconds = 0; 
-            while (queue.Count != 0) //some complexity
-            {
+            while (queue.Count != 0) //O(2^n * n^4), because each time you expand a node, it expands it 2 times, exponentially
+            {                        //where n is the number of cities
                 if (queue.Count > maxStates) //if maxStates needs to be updated, update it
                     maxStates = queue.Count; 
                 ts = timer.Elapsed;
