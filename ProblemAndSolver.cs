@@ -388,20 +388,27 @@ namespace TSP
             int chosenY = 0;
             double greatestDiff = double.NegativeInfinity; //initialize to -oo to find what the greatest
                                                            //difference is
-            for (int i = 0; i < state.getMap().GetLength(0); i++) //rows, O(n^4)
+            List<PointF> points = new List<PointF>();
+            for (int i = 0; i < state.getMap().GetLength(0); i++) //rows, O(n^2)
             {
                 for (int j = 0; j < state.getMap().GetLength(1); j++) //columns
                 {
                     if (state.getPoint(i, j) == 0) //if point is 0
                     {
-                        int possibleMax = findExcludeMinusInclude(i, j, state); //O(n^2)
-                        if (possibleMax >= greatestDiff) //set the point to point values, if it is 0 is covered by =
-                        {
-                            chosenX = i;
-                            chosenY = j;
-                            greatestDiff = possibleMax;
-                        }
+                        points.Add(new PointF(i, j)); //store all 0's in a point array
+                        
                     }
+                }
+            }
+            for(int i = 0; i < points.Count; i++) //loop through 0's to find the greatest difference
+            {//O(n^4)                               there will be atmost n^2 points, because the entire
+                                                  //matrix will be 0
+                int possibleMax = findExcludeMinusInclude(Convert.ToInt32(points[i].X), Convert.ToInt32(points[i].Y), state); //O(n^2)
+                if (possibleMax >= greatestDiff) //set the point to point values, if it is 0 is covered by =
+                {
+                    chosenX = Convert.ToInt32(points[i].X);
+                    chosenY = Convert.ToInt32(points[i].Y);
+                    greatestDiff = possibleMax;
                 }
             }
             State include = makeInclude(chosenX, chosenY, state); //O(n^2)
